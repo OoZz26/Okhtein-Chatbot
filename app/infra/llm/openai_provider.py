@@ -1,22 +1,40 @@
-"""LLMProvider adapter for OpenAI chat completions. Translates between our types and OpenAI's."""
+"""LLMProvider adapter for any OpenAI-compatible chat API (OpenAI itself, OpenRouter, ...).
+
+One class, configured twice: only the base URL, key, model and headers differ.
+"""
 
 import json
-import logging
 from collections.abc import Sequence
 from typing import Any
 
 import openai
 from openai import AsyncOpenAI
 
-from app.domain.errors import LLMError
+from app.domain.errors import PermanentLLMError, TransientLLMError
 from app.domain.models import ChatMessage, LLMResponse, ToolCall, ToolSpec
 
-logger = logging.getLogger(__name__)
+SERVER_ERROR_FLOOR = 500
 
 
-class OpenAIProvider:
-    def __init__(self, api_key: str, model: str, timeout_seconds: float) -> None:
-        self._client = AsyncOpenAI(api_key=api_key, timeout=timeout_seconds)
+class OpenAICompatibleProvider:
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        timeout_seconds: float,
+        base_url: str | None = None,
+        headers: dict[str, str] | None = None,
+        http_client: openai.DefaultAsyncHttpxClient | None = None,
+    ) -> None:
+        # max_retries=0: retrying is the chain's job. The SDK's own hidden retries would multiply ours.
+        self._client = AsyncOpenAI(
+            api_key=api_key,
+            base_url=base_url,
+            timeout=timeout_seconds,
+            max_retries=0,
+            default_headers=headers,
+            http_client=http_client,
+        )
         self._model = model
 
     async def chat(
@@ -36,8 +54,7 @@ class OpenAIProvider:
         try:
             completion = await self._client.chat.completions.create(**kwargs)
         except openai.OpenAIError as exc:
-            logger.error("OpenAI request failed: %s", exc)
-            raise LLMError(f"OpenAI request failed: {exc}") from exc
+            raise self._classify(exc) from exc
         message = completion.choices[0].message
         calls = tuple(
             ToolCall(c.id, c.function.name, self._parse_arguments(c.function.arguments))
@@ -45,6 +62,15 @@ class OpenAIProvider:
             if c.type == "function"
         )
         return LLMResponse(message.content or "", calls)
+
+    @staticmethod
+    def _classify(exc: openai.OpenAIError) -> Exception:
+        """Translate the SDK's exceptions into our two kinds, so the chain never imports `openai`."""
+        if isinstance(exc, openai.APITimeoutError | openai.APIConnectionError | openai.RateLimitError):
+            return TransientLLMError(f"{type(exc).__name__}: {exc}")
+        if isinstance(exc, openai.APIStatusError) and exc.status_code >= SERVER_ERROR_FLOOR:
+            return TransientLLMError(f"HTTP {exc.status_code}: {exc}")
+        return PermanentLLMError(f"{type(exc).__name__}: {exc}")
 
     @staticmethod
     def _parse_arguments(raw: str) -> dict[str, Any]:

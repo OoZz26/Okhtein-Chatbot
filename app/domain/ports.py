@@ -81,3 +81,9 @@ class SessionStore(Protocol):
     async def load(self, chat_id: str) -> SessionState: ...
 
     async def save(self, chat_id: str, state: SessionState) -> None: ...
+
+
+class FollowUpStore(Protocol):
+    """Flags chats where a human should follow up (for example when the assistant could not answer)."""
+
+    async def flag(self, chat_id: str, reason: str) -> None: ...

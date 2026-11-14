@@ -12,7 +12,7 @@ from app.domain.retrieval.keyword import KeywordSearch
 from app.domain.tools.base import ToolRegistry
 from app.domain.tools.search_products import SearchProductsTool
 from app.main import create_app
-from app.services.chat_service import ChatService
+from app.services.chat_service import HOLDING_MESSAGE, ChatService
 from tests.fakes import FakeLLM, InMemoryProducts, make_chat_service, make_product, tool_call
 
 PRODUCTS = InMemoryProducts([make_product("black-clutch")])
@@ -58,12 +58,14 @@ def test_chat_returns_a_reply_with_a_real_link(client: TestClient) -> None:
     assert body["links"][0] in body["reply"]
 
 
-def test_llm_failure_becomes_503(client: TestClient) -> None:
+def test_llm_failure_gives_the_customer_a_friendly_holding_reply(client: TestClient) -> None:
     client.app.dependency_overrides[get_chat_service] = lambda: service_with(FailingLLM())  # type: ignore[attr-defined]
 
     response = client.post("/chat", json={"chat_id": "c1", "text": "hi"})
 
-    assert response.status_code == 503
+    assert response.status_code == 200  # the customer never sees an error
+    assert response.json()["reply"] == HOLDING_MESSAGE
+    assert response.json()["links"] == []
 
 
 def test_empty_text_is_rejected(client: TestClient) -> None:

@@ -152,12 +152,21 @@ class InMemorySessionStore:
         self._states[chat_id] = state
 
 
+class InMemoryFollowUps:
+    def __init__(self) -> None:
+        self.flagged: list[tuple[str, str]] = []
+
+    async def flag(self, chat_id: str, reason: str) -> None:
+        self.flagged.append((chat_id, reason))
+
+
 def make_chat_service(
     agent: SalesAgent,
     rig: MemoryRig | None = None,
     sessions: InMemorySessionStore | None = None,
     max_questions: int = 3,
     store_url: str = "https://eg.okhtein.com",
+    follow_ups: InMemoryFollowUps | None = None,
 ) -> ChatService:
     """A real ChatService wired to fakes for every port."""
     return ChatService(
@@ -165,5 +174,26 @@ def make_chat_service(
         (rig or make_memory()).service,
         sessions or InMemorySessionStore(),
         DiscoveryPolicy(max_questions),
+        follow_ups or InMemoryFollowUps(),
         store_url,
     )
+
+
+class ScriptedProvider:
+    """An LLM provider that replays scripted outcomes: each is a response to return or an error to raise."""
+
+    def __init__(self, *outcomes: LLMResponse | Exception) -> None:
+        self._outcomes = list(outcomes)
+        self.calls = 0
+
+    async def chat(
+        self,
+        messages: Sequence[ChatMessage],
+        tools: Sequence[ToolSpec] = (),
+        response_schema: dict[str, Any] | None = None,
+    ) -> LLMResponse:
+        self.calls += 1
+        outcome = self._outcomes.pop(0)
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome

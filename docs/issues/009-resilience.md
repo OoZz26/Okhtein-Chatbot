@@ -1,6 +1,6 @@
 # 009 — Resilience: LLM fallback & graceful failure
 
-**Status:** ⚪ Todo · **Estimate:** 20 min
+**Status:** 🔵 In progress (manual OpenRouter demo pending) · **Estimate:** 20 min
 
 ## What to build
 
@@ -17,12 +17,12 @@ The bot keeps working when a provider fails, and a customer never sees an error 
 
 ## Acceptance criteria
 
-- [ ] Primary raises → fallback answers (unit test with fake providers)
-- [ ] Transient error is retried before falling back; non-transient error falls back immediately (tests)
-- [ ] All providers fail → friendly message sent, no stack trace to the customer, chat flagged (test)
+- [x] Primary raises → fallback answers (unit test with fake providers)
+- [x] Transient error is retried before falling back; non-transient error falls back immediately (tests)
+- [x] All providers fail → friendly message sent, no stack trace to the customer, chat flagged (test)
 - [ ] Manual: an invalid OpenAI key in `.env` → the bot still answers through OpenRouter
-- [ ] Timeouts, retries and provider order are configurable
-- [ ] Logs show the provider per reply; phone numbers are masked
+- [x] Timeouts, retries and provider order are configurable
+- [x] Logs show the provider per reply; phone numbers are masked
 
 ## Blocked by
 

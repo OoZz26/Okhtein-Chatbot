@@ -23,7 +23,7 @@ The bot is built as **vertical slices (tracer bullets)**: every issue cuts throu
 | 006 | [Smarter matching (hybrid retrieval)](006-hybrid-retrieval.md) | 002 | 30m | ⚪ Todo |
 | 007 | [Store FAQ answers](007-store-faq.md) | 002 | 10m | ⚪ Todo |
 | 008 | [Human-like WhatsApp experience](008-human-like-whatsapp.md) | 003, 004 | 30m | ⚪ Todo |
-| 009 | [Resilience: LLM fallback & graceful failure](009-resilience.md) | 002 | 20m | ⚪ Todo |
+| 009 | [Resilience: LLM fallback & graceful failure](009-resilience.md) | 002 | 20m | 🔵 In progress |
 | 010 | [Human handoff](010-human-handoff.md) | 003, 004 | 20m | ⚪ Todo |
 | 011 | [Returning customer](011-returning-customer.md) | 005 | 15m | ⚪ Todo |
 | 012 | [Load test](012-load-test.md) | 008 | 20m | ⚪ Todo |

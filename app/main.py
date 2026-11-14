@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 
 from app import bootstrap
 from app.api import chat, health, webhook
+from app.core.logging import configure_logging
 from app.domain.errors import ConfigurationError, LLMError
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ async def _misconfigured(_: Request, exc: Exception) -> JSONResponse:
 
 def create_app(startup: Hook | None = None, shutdown: Hook | None = None) -> FastAPI:
     """Build the app. Startup/shutdown hooks are injected so tests can run without Docker services."""
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    configure_logging()
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:

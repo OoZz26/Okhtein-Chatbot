@@ -1,15 +1,18 @@
 """Composition root: the ONE place where concrete classes are chosen and wired together."""
 
+import logging
+from collections.abc import Callable
 from functools import lru_cache
 from pathlib import Path
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.domain.agent.sales_agent import SalesAgent, load_system_prompt
 from app.domain.discovery import DiscoveryPolicy
 from app.domain.errors import ConfigurationError
+from app.domain.llm.fallback_chain import FallbackLLMProvider, ProviderSlot
 from app.domain.retrieval.keyword import KeywordSearch
 from app.domain.tools.base import ToolRegistry
 from app.domain.tools.search_products import SearchProductsTool
@@ -18,12 +21,15 @@ from app.infra.cache.redis_session_store import RedisSessionStore
 from app.infra.cache.redis_short_term import RedisShortTermMemory
 from app.infra.catalog.json_repository import JsonProductRepository
 from app.infra.db.conversation_store import PostgresConversationStore
+from app.infra.db.follow_up_store import PostgresFollowUpStore
 from app.infra.db.session import create_engine, create_session_factory, create_tables
-from app.infra.llm.openai_provider import OpenAIProvider
+from app.infra.llm.openai_provider import OpenAICompatibleProvider
 from app.infra.whatsapp.waha_gateway import WahaGateway
 from app.services.chat_service import ChatService
 from app.services.incoming_message_service import IncomingMessageService
 from app.services.memory_service import MemoryService
+
+logger = logging.getLogger(__name__)
 
 
 @lru_cache
@@ -50,17 +56,53 @@ def build_memory_service() -> MemoryService:
     )
 
 
+def _openai(settings: Settings) -> OpenAICompatibleProvider:
+    return OpenAICompatibleProvider(
+        settings.openai_api_key, settings.openai_model, settings.llm_timeout_seconds
+    )
+
+
+def _openrouter(settings: Settings) -> OpenAICompatibleProvider:
+    return OpenAICompatibleProvider(
+        settings.openrouter_api_key,
+        settings.openrouter_model,
+        settings.llm_timeout_seconds,
+        base_url=settings.openrouter_base_url,
+        headers={"X-Title": "Okhtein WhatsApp Assistant"},
+    )
+
+
+def build_llm(settings: Settings) -> FallbackLLMProvider:
+    """The provider chain, in the configured order. Providers without an API key are skipped."""
+    factories: dict[str, tuple[str, Callable[[Settings], OpenAICompatibleProvider]]] = {
+        "openai": (settings.openai_api_key, _openai),
+        "openrouter": (settings.openrouter_api_key, _openrouter),
+    }
+    slots = []
+    for name in (n.strip() for n in settings.llm_provider_order.split(",") if n.strip()):
+        if name not in factories:
+            raise ConfigurationError(f"Unknown provider {name!r} in LLM_PROVIDER_ORDER")
+        api_key, factory = factories[name]
+        if api_key:
+            slots.append(ProviderSlot(name, factory(settings)))
+        else:
+            logger.warning("LLM provider %s is in LLM_PROVIDER_ORDER but has no API key; skipping it", name)
+    if not slots:
+        raise ConfigurationError(
+            "No LLM provider has an API key; set OPENAI_API_KEY and/or OPENROUTER_API_KEY"
+        )
+    return FallbackLLMProvider(slots, settings.llm_max_retries, settings.llm_retry_base_delay_seconds)
+
+
 @lru_cache
 def build_agent() -> SalesAgent:
     settings = get_settings()
-    if not settings.openai_api_key:
-        raise ConfigurationError("OPENAI_API_KEY is not set; add it to your .env file")
     products = JsonProductRepository(Path(settings.products_path))
     search_tool = SearchProductsTool(
         KeywordSearch(products), settings.store_currency, settings.search_result_limit
     )
     return SalesAgent(
-        llm=OpenAIProvider(settings.openai_api_key, settings.openai_model, settings.llm_timeout_seconds),
+        llm=build_llm(settings),
         tools=ToolRegistry([search_tool]),
         products=products,
         system_prompt=load_system_prompt(settings.prompt_version),
@@ -76,6 +118,7 @@ def build_chat_service() -> ChatService:
         memory=build_memory_service(),
         sessions=RedisSessionStore(_redis(), settings.session_ttl_seconds),
         policy=DiscoveryPolicy(settings.max_discovery_questions),
+        follow_ups=PostgresFollowUpStore(create_session_factory(_engine())),
         store_url=settings.store_url,
     )
 

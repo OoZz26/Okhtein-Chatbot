@@ -24,11 +24,11 @@ from app.core.config import Settings, get_settings
 from app.domain.discovery import DiscoveryPolicy
 from app.infra.cache.redis_session_store import RedisSessionStore
 from app.infra.catalog.json_repository import JsonProductRepository
-from app.infra.llm.openai_provider import OpenAIProvider
+from app.infra.llm.openai_provider import OpenAICompatibleProvider
 from app.services.chat_service import ChatService
 from tests.evals.checks import BotTurn, CheckResult, run_checks
 from tests.evals.judge import DIMENSIONS, Judge, ReplyScore
-from tests.fakes import make_memory
+from tests.fakes import InMemoryFollowUps, make_memory
 
 EVALS_DIR = Path(__file__).parent
 REPORTS_DIR = EVALS_DIR / "reports"
@@ -61,7 +61,7 @@ def build_service(settings: Settings) -> ChatService:
     rig = make_memory(settings.history_limit, settings.session_ttl_seconds)
     sessions = RedisSessionStore(FakeAsyncRedis(decode_responses=True), settings.session_ttl_seconds)
     policy = DiscoveryPolicy(settings.max_discovery_questions)
-    return ChatService(build_agent(), rig.service, sessions, policy, settings.store_url)
+    return ChatService(build_agent(), rig.service, sessions, policy, InMemoryFollowUps(), settings.store_url)
 
 
 async def run_scenario(
@@ -161,7 +161,9 @@ async def main(only: list[str], prompt_version: str | None) -> int:
         scenarios = [s for s in scenarios if s["id"] in only]
     prices = {p.handle: p.price_min for p in JsonProductRepository(Path(settings.products_path)).all()}
     judge = Judge(
-        OpenAIProvider(settings.openai_api_key, settings.eval_judge_model, settings.llm_timeout_seconds)
+        OpenAICompatibleProvider(
+            settings.openai_api_key, settings.eval_judge_model, settings.llm_timeout_seconds
+        )
     )
     service = build_service(settings)
     models = (
