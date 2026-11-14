@@ -26,7 +26,7 @@ The bot is built as **vertical slices (tracer bullets)**: every issue cuts throu
 | 009 | [Resilience: LLM fallback & graceful failure](009-resilience.md) | 002 | 20m | ✅ Done ⏳ |
 | 010 | [Human handoff](010-human-handoff.md) | 003, 004 | 20m | ✅ Done ⏳ |
 | 011 | [Returning customer](011-returning-customer.md) | 005 | 15m | ✅ Done |
-| 012 | [Load test](012-load-test.md) | 008 | 20m | ✅ Done ⏳ |
+| 012 | [Load test](012-load-test.md) | 008 | 20m | ✅ Done |
 | 013 | [README & demo](013-readme-demo.md) | all | 10m | ✅ Done ⏳ |
 
 Statuses: ⚪ Todo · 🟡 Ready · 🔵 In progress · ✅ Done · ⏳ done in code, a manual phone/`.env` check is still pending (see [`../morning-checklist.md`](../morning-checklist.md))
