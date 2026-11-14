@@ -200,5 +200,24 @@
       "no_handoff": true,
       "language": "english"
     }
+  },
+  {
+    "id": "returning_customer",
+    "description": "A customer who liked bold gold pieces comes back after their session expired (the first visit is over, a new one starts with just 'hi'). The bot should welcome them back warmly and naturally mention the remembered taste (bold gold pieces), asking whether it still fits, without reciting their history or pushing the same products again.",
+    "turns": [
+      "I love bold gold pieces, show me a gold ring please",
+      "I like the first one, thank you",
+      {
+        "expire_session": true
+      },
+      "hi"
+    ],
+    "checks": {
+      "last_reply_contains_any": [
+        "gold",
+        "bold"
+      ],
+      "language": "english"
+    }
   }
 ]

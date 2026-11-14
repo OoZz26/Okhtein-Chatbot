@@ -89,3 +89,12 @@ def test_faq_checks() -> None:
     ]
     assert outcome([turn("حد من الفريق هيرد")], {"mentions_team": True})["offers_a_team_member"]
     assert not outcome([turn("مش عارفة")], {"mentions_team": True})["offers_a_team_member"]
+
+
+def test_the_returning_customer_check_looks_only_at_the_last_reply() -> None:
+    turns = [turn("Lovely gold rings!"), turn("Hi there")]
+
+    assert not outcome(turns, {"last_reply_contains_any": ["gold"]})["last_reply_remembers"]
+    assert outcome([*turns, turn("Welcome back! Still into gold?")], {"last_reply_contains_any": ["gold"]})[
+        "last_reply_remembers"
+    ]

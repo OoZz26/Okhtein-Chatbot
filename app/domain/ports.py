@@ -4,8 +4,9 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, Protocol
 
-from app.domain.discovery import SessionState
+from app.domain.discovery import CustomerProfile, SessionState
 from app.domain.handoff import HandoffState
+from app.domain.long_term_profile import LongTermProfile
 from app.domain.models import (
     ChatMessage,
     IndexedProduct,
@@ -78,6 +79,8 @@ class ConversationStore(Protocol):
     async def last_message_at(self, chat_id: str) -> datetime | None: ...
 
     async def recent_messages(self, chat_id: str, limit: int) -> list[ChatMessage]: ...
+
+    async def messages_after(self, chat_id: str, after: datetime | None, limit: int) -> list[ChatMessage]: ...
 
 
 class ConversationMemory(Protocol):
@@ -176,3 +179,17 @@ class VectorIndex(Protocol):
         ...
 
     async def delete(self, handles: Sequence[str]) -> None: ...
+
+
+class LongTermProfileStore(Protocol):
+    """What we remember about a customer across visits (Postgres)."""
+
+    async def get(self, chat_id: str) -> LongTermProfile: ...
+
+    async def save(self, chat_id: str, profile: LongTermProfile) -> None: ...
+
+
+class ProfileSummarizer(Protocol):
+    """Writes a short summary of a finished session (an LLM call)."""
+
+    async def summarize(self, messages: Sequence[ChatMessage], known: CustomerProfile) -> str: ...

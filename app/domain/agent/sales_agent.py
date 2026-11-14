@@ -108,6 +108,8 @@ class SalesAgent:
             )
         if context.profile_summary:
             notes.append(f"Already known about the customer: {context.profile_summary}. Do not ask again.")
+        if context.returning_notes:
+            notes.append(self._returning_note(context))
         if context.guidance:
             notes.append(context.guidance)
         session_notes = "## Session notes\n" + "\n".join(f"- {note}" for note in notes)
@@ -120,6 +122,21 @@ class SalesAgent:
         if not raw.strip():
             return ""
         return "# Store knowledge (your ONLY source for store questions)\n\n" + render_store_knowledge(raw)
+
+    @staticmethod
+    def _returning_note(context: AgentContext) -> str:
+        greeting = (
+            "This customer is BACK for a new visit: welcome them back warmly in your first reply, "
+            "mention at most one remembered preference naturally and ask whether it still fits "
+            "(taste can change). "
+            if context.welcome_back
+            else ""
+        )
+        return (
+            f"Earlier visits (remembered, do not recite):\n{context.returning_notes}\n"
+            f"{greeting}Never recommend a product already shown before unless the customer asks for it "
+            "again or it is clearly the best match. If they say their taste changed, follow what they say."
+        )
 
     @staticmethod
     def _clean_display_name(raw: str) -> str:

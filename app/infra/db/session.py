@@ -1,6 +1,6 @@
 """Async SQLAlchemy engine and session factory for Postgres."""
 
-from sqlalchemy import URL
+from sqlalchemy import URL, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from app.infra.db.models import Base
@@ -19,3 +19,5 @@ async def create_tables(engine: AsyncEngine) -> None:
     """Create missing tables at startup. (A migration tool such as Alembic is a 'Later' item.)"""
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
+        # create_all never alters an existing table, so columns added later are patched in here.
+        await connection.execute(text("ALTER TABLE customers ADD COLUMN IF NOT EXISTS profile JSONB"))

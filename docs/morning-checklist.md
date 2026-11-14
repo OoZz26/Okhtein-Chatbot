@@ -44,3 +44,13 @@ The conversation evals showed an occasional (~1 in 5 runs) reply in Arabic to an
 
 ### 006: Hybrid retrieval with pgvector (done tonight, nothing manual)
 Already done and verified: the Postgres container now runs `pgvector/pgvector:0.8.7-pg17-trixie` (your data was backed up first and is intact), the 212 products are embedded (`python scripts/build_embeddings.py`; a second run embeds 0), and the app uses `RETRIEVER=hybrid`. Optional: `python scripts/eval_retrieval.py` prints hit@3 for keyword/vector/hybrid. If you ever add products, re-run `python scripts/build_embeddings.py` (it only embeds what changed). If pgvector or embeddings are unavailable the bot silently falls back to keyword search (logged as `retrieval_fallback`).
+
+### 011: Returning customer (optional phone check)
+Tested with fakes, Postgres integration tests and a real-LLM eval scenario. To see it on your phone, you need a session that really expires:
+1. In `.env` set `SESSION_TTL_SECONDS=60`, restart the app, then chat from the second phone (e.g. `I love bold gold rings, show me one`, then `I like the first one`).
+2. Wait 70 seconds, then send `hi`. Expect a short "welcome back" that mentions your gold taste and asks if it still fits.
+3. Restore `SESSION_TTL_SECONDS=86400` and restart.
+Note: `redis-cli FLUSHALL` between messages will NOT trigger "welcome back" (the conversation is reloaded from Postgres, by design from issue 004). It does keep the learned preferences. Check the stored profile with:
+```bash
+docker compose exec postgres psql -U okhtein -d okhtein -c "select chat_id, profile from customers where profile is not null"
+```

@@ -11,6 +11,7 @@ from app.domain.errors import LLMError
 from app.domain.models import AgentContext, ChatMessage, ConversationStage
 from app.domain.ports import ConversationMemory, FollowUpStore, SessionStore
 from app.services.handoff_service import HandoffService
+from app.services.returning_customer_service import ReturningCustomerService
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,7 @@ class ChatService:
         policy: DiscoveryPolicy,
         follow_ups: FollowUpStore,
         handoffs: HandoffService,
+        returning: ReturningCustomerService,
         store_url: str,
     ) -> None:
         self._agent = agent
@@ -51,6 +53,7 @@ class ChatService:
         self._policy = policy
         self._follow_ups = follow_ups
         self._handoffs = handoffs
+        self._returning = returning
         self._store_url = store_url.rstrip("/")
 
     async def is_handed_off(self, chat_id: str) -> bool:
@@ -60,6 +63,7 @@ class ChatService:
         started = time.perf_counter()
         history = await self._memory.context(chat_id)
         state = await self._sessions.load(chat_id)
+        returning = await self._returning.context_for(chat_id, new_session=not history)
         await self._memory.record(chat_id, ChatMessage("user", text), sender_name)
         if await self._handoffs.is_handed_off(chat_id):
             logger.info("chat_reply outcome=silent reason=handed_off")
@@ -69,6 +73,8 @@ class ChatService:
             stage=state.stage,
             profile_summary=state.profile.summary(),
             guidance=self._policy.guidance(state),
+            returning_notes=returning.notes,
+            welcome_back=returning.welcome_back,
         )
         try:
             agent_reply = await self._agent.respond(text, history, context)
@@ -76,6 +82,7 @@ class ChatService:
             return await self._degrade(chat_id, state.stage, exc, started)
         new_state = self._policy.update(state, agent_reply)
         await self._sessions.save(chat_id, new_state)
+        await self._returning.remember(chat_id, new_state.profile, agent_reply.product_handles)
         links = [self.product_link(handle) for handle in agent_reply.product_handles]
         reply = "\n\n".join([agent_reply.message, *links]) if links else agent_reply.message
         await self._memory.record(chat_id, ChatMessage("assistant", reply))

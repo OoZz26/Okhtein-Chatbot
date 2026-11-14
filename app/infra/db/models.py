@@ -1,8 +1,10 @@
 """SQLAlchemy table definitions for long-term memory."""
 
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import BigInteger, DateTime, Index, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -17,6 +19,7 @@ class CustomerRow(Base):
     display_name: Mapped[str] = mapped_column(String(255), default="")
     first_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    profile: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)  # long-term memory
 
 
 class MessageRow(Base):

@@ -142,6 +142,14 @@ def _contains_any(turns: list[BotTurn], needles: list[str], __: Callable[[str], 
     return CheckResult("contains_expected_fact", bool(found), f"needles={needles} found={found}")
 
 
+def _last_reply_contains_any(
+    turns: list[BotTurn], needles: list[str], __: Callable[[str], float]
+) -> CheckResult:
+    reply = turns[-1].reply.lower()
+    found = [n for n in needles if n.lower() in reply]
+    return CheckResult("last_reply_remembers", bool(found), f"needles={needles} found={found}")
+
+
 def _no_money_amounts(turns: list[BotTurn], _: Any, __: Callable[[str], float]) -> CheckResult:
     amounts = [m.group(0) for t in turns for m in MONEY.finditer(t.reply)]
     return CheckResult("no_invented_amounts", not amounts, f"amounts={amounts}")
@@ -182,6 +190,7 @@ _CHECKERS: dict[str, Callable[[list[BotTurn], Any, Callable[[str], float]], Chec
     "triggers_handoff": _triggers_handoff,
     "no_handoff": _no_handoff,
     "contains_any": _contains_any,
+    "last_reply_contains_any": _last_reply_contains_any,
     "no_money_amounts": _no_money_amounts,
     "mentions_team": _mentions_team,
 }

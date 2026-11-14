@@ -85,6 +85,8 @@ class AgentContext:
     stage: ConversationStage = ConversationStage.GREET
     profile_summary: str = ""
     guidance: str = ""
+    returning_notes: str = ""  # what we remember from earlier visits
+    welcome_back: bool = False  # this is a new session for a known customer
 
 
 @dataclass(frozen=True)

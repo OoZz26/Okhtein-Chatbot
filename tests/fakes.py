@@ -9,9 +9,10 @@ from typing import Any
 from fakeredis import FakeAsyncRedis
 
 from app.domain.agent.sales_agent import SalesAgent
-from app.domain.discovery import DiscoveryPolicy, SessionState
-from app.domain.errors import MessagingError, RetrievalError
+from app.domain.discovery import CustomerProfile, DiscoveryPolicy, SessionState
+from app.domain.errors import LLMError, MessagingError, RetrievalError
 from app.domain.handoff import HandoffState
+from app.domain.long_term_profile import LongTermProfile
 from app.domain.models import (
     ChatMessage,
     IndexedProduct,
@@ -34,6 +35,7 @@ from app.services.memory_service import MemoryService
 from app.services.product_cards import ProductCardFactory
 from app.services.reply_sender import ReplySender
 from app.services.reply_service import ReplyService
+from app.services.returning_customer_service import ReturningCustomerService
 
 
 class FakeLLM:
@@ -157,6 +159,10 @@ class InMemoryConversationStore:
     async def recent_messages(self, chat_id: str, limit: int) -> list[ChatMessage]:
         return [m for cid, m, _ in self.rows if cid == chat_id][-limit:]
 
+    async def messages_after(self, chat_id: str, after: datetime | None, limit: int) -> list[ChatMessage]:
+        rows = [m for cid, m, at in self.rows if cid == chat_id and (after is None or at > after)]
+        return rows[:limit]
+
 
 @dataclass
 class MemoryRig:
@@ -205,15 +211,18 @@ def make_chat_service(
     store_url: str = "https://eg.okhtein.com",
     follow_ups: InMemoryFollowUps | None = None,
     handoffs: HandoffService | None = None,
+    returning: ReturningCustomerService | None = None,
 ) -> ChatService:
     """A real ChatService wired to fakes for every port."""
+    rig = rig or make_memory()
     return ChatService(
         agent,
-        (rig or make_memory()).service,
+        rig.service,
         sessions or InMemorySessionStore(),
         DiscoveryPolicy(max_questions),
         follow_ups or InMemoryFollowUps(),
         handoffs or make_handoffs().service,
+        returning or make_returning(rig).service,
         store_url,
     )
 
@@ -398,3 +407,46 @@ class InMemoryVectorIndex:
     async def delete(self, handles: Sequence[str]) -> None:
         for handle in handles:
             self.items.pop(handle, None)
+
+
+class InMemoryProfileStore:
+    def __init__(self) -> None:
+        self.profiles: dict[str, LongTermProfile] = {}
+
+    async def get(self, chat_id: str) -> LongTermProfile:
+        return self.profiles.get(chat_id, LongTermProfile())
+
+    async def save(self, chat_id: str, profile: LongTermProfile) -> None:
+        self.profiles[chat_id] = profile
+
+
+class FakeSummarizer:
+    """Returns scripted summaries and records what it was asked to summarise."""
+
+    def __init__(self, *summaries: str, fail: bool = False) -> None:
+        self._summaries = list(summaries) or ["Likes bold gold pieces."]
+        self.fail = fail
+        self.calls: list[list[ChatMessage]] = []
+
+    async def summarize(self, messages: Sequence[ChatMessage], known: CustomerProfile) -> str:
+        self.calls.append(list(messages))
+        if self.fail:
+            raise LLMError("summarizer down")
+        return self._summaries.pop(0) if len(self._summaries) > 1 else self._summaries[0]
+
+
+@dataclass
+class ReturningRig:
+    service: ReturningCustomerService
+    profiles: InMemoryProfileStore
+    summarizer: FakeSummarizer
+
+
+def make_returning(rig: MemoryRig | None = None, summarizer: FakeSummarizer | None = None) -> ReturningRig:
+    """ReturningCustomerService over fakes, sharing the memory rig's store and clock."""
+    rig = rig or make_memory()
+    profiles, summarizer = InMemoryProfileStore(), summarizer or FakeSummarizer()
+    service = ReturningCustomerService(
+        profiles, rig.store, summarizer, summary_max_chars=300, shown_limit=20, clock=rig.clock
+    )
+    return ReturningRig(service, profiles, summarizer)

@@ -14,6 +14,7 @@ from app.domain.discovery import DiscoveryPolicy
 from app.domain.errors import ConfigurationError
 from app.domain.llm.fallback_chain import FallbackLLMProvider, ProviderSlot
 from app.domain.ports import StaffNotifier
+from app.domain.profile_summarizer import LLMProfileSummarizer
 from app.domain.retrieval.base import Retriever
 from app.domain.retrieval.keyword import KeywordSearch
 from app.domain.retrieval.retrievers import (
@@ -37,6 +38,7 @@ from app.infra.db.conversation_store import PostgresConversationStore
 from app.infra.db.follow_up_store import PostgresFollowUpStore
 from app.infra.db.handoff_store import PostgresHandoffStore
 from app.infra.db.pgvector_index import PgVectorIndex, ensure_vector_support
+from app.infra.db.profile_store import PostgresProfileStore
 from app.infra.db.session import create_engine, create_session_factory, create_tables
 from app.infra.llm.openai_embedder import OpenAIEmbedder
 from app.infra.llm.openai_provider import OpenAICompatibleProvider
@@ -54,6 +56,7 @@ from app.services.memory_service import MemoryService
 from app.services.product_cards import ProductCardFactory
 from app.services.reply_sender import ReplySender
 from app.services.reply_service import ReplyService
+from app.services.returning_customer_service import ReturningCustomerService
 
 logger = logging.getLogger(__name__)
 
@@ -197,6 +200,19 @@ def build_handoff_service() -> HandoffService:
 
 
 @lru_cache
+def build_returning_customer_service() -> ReturningCustomerService:
+    settings = get_settings()
+    sessions = create_session_factory(_engine())
+    return ReturningCustomerService(
+        profiles=PostgresProfileStore(sessions),
+        conversations=PostgresConversationStore(sessions),
+        summarizer=LLMProfileSummarizer(build_llm(settings)),
+        summary_max_chars=settings.profile_summary_max_chars,
+        shown_limit=settings.profile_products_shown_limit,
+    )
+
+
+@lru_cache
 def build_chat_service() -> ChatService:
     settings = get_settings()
     return ChatService(
@@ -206,6 +222,7 @@ def build_chat_service() -> ChatService:
         policy=DiscoveryPolicy(settings.max_discovery_questions),
         follow_ups=PostgresFollowUpStore(create_session_factory(_engine())),
         handoffs=build_handoff_service(),
+        returning=build_returning_customer_service(),
         store_url=settings.store_url,
     )
 

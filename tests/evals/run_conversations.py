@@ -12,6 +12,7 @@ import argparse
 import asyncio
 import json
 import sys
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -19,16 +20,18 @@ from typing import Any
 
 from fakeredis import FakeAsyncRedis
 
-from app.bootstrap import build_agent
+from app.bootstrap import build_agent, build_llm
 from app.core.config import Settings, get_settings
 from app.domain.discovery import DiscoveryPolicy
+from app.domain.profile_summarizer import LLMProfileSummarizer
 from app.infra.cache.redis_session_store import RedisSessionStore
 from app.infra.catalog.json_repository import JsonProductRepository
 from app.infra.llm.openai_provider import OpenAICompatibleProvider
 from app.services.chat_service import ChatService
+from app.services.returning_customer_service import ReturningCustomerService
 from tests.evals.checks import BotTurn, CheckResult, run_checks
 from tests.evals.judge import DIMENSIONS, Judge, ReplyScore
-from tests.fakes import InMemoryFollowUps, make_handoffs, make_memory
+from tests.fakes import InMemoryFollowUps, InMemoryProfileStore, make_handoffs, make_memory
 
 EVALS_DIR = Path(__file__).parent
 REPORTS_DIR = EVALS_DIR / "reports"
@@ -56,30 +59,58 @@ class ScenarioResult:
         return sum(s.scores[dimension] for s in self.scores) / len(self.scores)
 
 
-def build_service(settings: Settings) -> ChatService:
-    """The real agent (real LLM, real tools) with throwaway in-memory storage, so evals leave no traces."""
+@dataclass
+class EvalStack:
+    """One scenario's world: the real agent and LLM, with throwaway in-memory storage."""
+
+    service: ChatService
+    expire_session: Callable[[], Awaitable[None]]
+
+
+def build_stack(settings: Settings) -> EvalStack:
+    """A fresh stack per scenario, so expiring one scenario's session cannot disturb the others."""
     rig = make_memory(settings.history_limit, settings.session_ttl_seconds)
-    sessions = RedisSessionStore(FakeAsyncRedis(decode_responses=True), settings.session_ttl_seconds)
-    policy = DiscoveryPolicy(settings.max_discovery_questions)
-    return ChatService(
+    session_redis = FakeAsyncRedis(decode_responses=True)
+    returning = ReturningCustomerService(
+        InMemoryProfileStore(),
+        rig.store,
+        LLMProfileSummarizer(build_llm(settings)),  # the real summariser: this is what the eval tests
+        settings.profile_summary_max_chars,
+        settings.profile_products_shown_limit,
+        clock=rig.clock,
+    )
+    service = ChatService(
         build_agent(),
         rig.service,
-        sessions,
-        policy,
+        RedisSessionStore(session_redis, settings.session_ttl_seconds),
+        DiscoveryPolicy(settings.max_discovery_questions),
         InMemoryFollowUps(),
         make_handoffs().service,
+        returning,
         settings.store_url,
     )
 
+    async def expire_session() -> None:
+        """The customer disappears for longer than the session TTL: Redis forgets, the clock moves on."""
+        await rig.redis.flushall()
+        await session_redis.flushall()
+        rig.clock.advance(seconds=settings.session_ttl_seconds + 1)
+
+    return EvalStack(service, expire_session)
+
 
 async def run_scenario(
-    scenario: dict[str, Any], service: ChatService, judge: Judge, prices: dict[str, float]
+    scenario: dict[str, Any], settings: Settings, judge: Judge, prices: dict[str, float]
 ) -> ScenarioResult:
+    stack = build_stack(settings)
     chat_id = f"eval-{scenario['id']}"
     turns: list[BotTurn] = []
-    for customer_text in scenario["turns"]:
-        result = await service.handle_message(chat_id, customer_text, scenario.get("sender_name", ""))
-        turns.append(BotTurn(customer_text, result.reply, result.product_handles, result.handed_off))
+    for step in scenario["turns"]:
+        if isinstance(step, dict) and step.get("expire_session"):
+            await stack.expire_session()
+            continue
+        result = await stack.service.handle_message(chat_id, step, scenario.get("sender_name", ""))
+        turns.append(BotTurn(step, result.reply, result.product_handles, result.handed_off))
     checks = run_checks(turns, scenario["checks"], lambda handle: prices[handle])
     scores = await judge.score(scenario["description"], turns)
     return ScenarioResult(scenario["id"], scenario["description"], turns, checks, scores)
@@ -173,12 +204,11 @@ async def main(only: list[str], prompt_version: str | None) -> int:
             settings.openai_api_key, settings.eval_judge_model, settings.llm_timeout_seconds
         )
     )
-    service = build_service(settings)
     models = (
         f"agent {settings.openai_model}, prompt {settings.prompt_version}, judge {settings.eval_judge_model}"
     )
     print(f"Running {len(scenarios)} scenarios ({models})")
-    results = await asyncio.gather(*(run_scenario(s, service, judge, prices) for s in scenarios))
+    results = await asyncio.gather(*(run_scenario(s, settings, judge, prices) for s in scenarios))
     print("\n" + render_table(results))
     for r in results:
         for c in r.checks:
