@@ -1,5 +1,6 @@
 """Fakes of the domain ports, used instead of mocks so tests exercise real code paths."""
 
+import asyncio
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -9,10 +10,16 @@ from fakeredis import FakeAsyncRedis
 
 from app.domain.agent.sales_agent import SalesAgent
 from app.domain.discovery import DiscoveryPolicy, SessionState
+from app.domain.errors import MessagingError
 from app.domain.models import ChatMessage, LLMResponse, Product, ToolCall, ToolSpec
 from app.infra.cache.redis_short_term import RedisShortTermMemory
 from app.services.chat_service import ChatService
+from app.services.debouncer import Debouncer
+from app.services.incoming_message_service import IncomingMessageService
 from app.services.memory_service import MemoryService
+from app.services.product_cards import ProductCardFactory
+from app.services.reply_sender import ReplySender
+from app.services.reply_service import ReplyService
 
 
 class FakeLLM:
@@ -62,17 +69,33 @@ def tool_call(arguments: dict[str, Any], call_id: str = "call_1") -> ToolCall:
 
 
 class FakeGateway:
-    """Records what would have been sent to WhatsApp."""
+    """Records what would have been sent to WhatsApp, in order."""
 
-    def __init__(self) -> None:
+    def __init__(self, fail_images: bool = False) -> None:
         self.sent: list[tuple[str, str]] = []
+        self.images: list[tuple[str, str, str]] = []
         self.seen: list[str] = []
+        self.events: list[str] = []
+        self.fail_images = fail_images
 
     async def send_text(self, chat_id: str, text: str) -> None:
         self.sent.append((chat_id, text))
+        self.events.append("text")
 
     async def mark_seen(self, chat_id: str) -> None:
         self.seen.append(chat_id)
+
+    async def send_image(self, chat_id: str, image_url: str, caption: str) -> None:
+        if self.fail_images:
+            raise MessagingError("image could not be sent")
+        self.images.append((chat_id, image_url, caption))
+        self.events.append("image")
+
+    async def start_typing(self, chat_id: str) -> None:
+        self.events.append("typing_on")
+
+    async def stop_typing(self, chat_id: str) -> None:
+        self.events.append("typing_off")
 
 
 class InMemoryIdempotency:
@@ -197,3 +220,70 @@ class ScriptedProvider:
         if isinstance(outcome, Exception):
             raise outcome
         return outcome
+
+
+class InMemoryBuffer:
+    def __init__(self) -> None:
+        self._items: dict[str, list[str]] = {}
+        self._sequence: dict[str, int] = {}
+
+    async def push(self, chat_id: str, text: str) -> int:
+        self._items.setdefault(chat_id, []).append(text)
+        self._sequence[chat_id] = self._sequence.get(chat_id, 0) + 1
+        return self._sequence[chat_id]
+
+    async def latest_sequence(self, chat_id: str) -> int:
+        return self._sequence.get(chat_id, 0)
+
+    async def drain(self, chat_id: str) -> list[str]:
+        return self._items.pop(chat_id, [])
+
+
+class InMemoryLock:
+    def __init__(self) -> None:
+        self.held: dict[str, str] = {}
+        self._counter = 0
+
+    async def acquire(self, chat_id: str) -> str | None:
+        if chat_id in self.held:
+            return None
+        self._counter += 1
+        self.held[chat_id] = f"token-{self._counter}"
+        return self.held[chat_id]
+
+    async def release(self, chat_id: str, token: str) -> None:
+        if self.held.get(chat_id) == token:
+            del self.held[chat_id]
+
+
+class NoLimit:
+    async def seconds_until_allowed(self) -> float:
+        return 0.0
+
+
+async def instant(_: float) -> None:
+    """A sleep that does not wait (and does not yield): tests stay fast and deterministic."""
+
+
+async def quick_yield(_: float) -> None:
+    """A sleep that only yields to other tasks: for tests where tasks must interleave for real."""
+    await asyncio.sleep(0.001)
+
+
+def make_incoming(
+    chat_service: ChatService,
+    gateway: FakeGateway | None = None,
+    allowed: frozenset[str] = frozenset(),
+    idempotency: InMemoryIdempotency | None = None,
+    products: Sequence[Product] = (),
+) -> tuple[IncomingMessageService, Debouncer, FakeGateway]:
+    """The whole inbound pipeline over fakes. Call `await debouncer.wait_idle()` to let replies finish."""
+    gateway = gateway or FakeGateway()
+    sender = ReplySender(
+        gateway, NoLimit(), max_bubbles=3, seconds_per_char=0.0, max_typing_delay_seconds=0.0, sleep=instant
+    )
+    cards = ProductCardFactory(InMemoryProducts(products), "https://eg.okhtein.com", "EGP")
+    replies = ReplyService(chat_service, gateway, sender, cards)
+    debouncer = Debouncer(InMemoryBuffer(), InMemoryLock(), replies.reply, 0.0, 1.0, sleep=instant)
+    incoming = IncomingMessageService(gateway, idempotency or InMemoryIdempotency(), debouncer, allowed)
+    return incoming, debouncer, gateway

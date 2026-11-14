@@ -20,13 +20,13 @@ The bot is built as **vertical slices (tracer bullets)**: every issue cuts throu
 | 003 | [Tracer bullet over WhatsApp](003-tracer-whatsapp.md) | 002 | 30m | ✅ Done |
 | 004 | [Bot remembers the conversation](004-conversation-memory.md) | 002 | 30m | ✅ Done |
 | 005 | [Discovery & friendliness ("Nour")](005-discovery-friendliness.md) | 004 | 45m | ✅ Done |
-| 006 | [Smarter matching (hybrid retrieval)](006-hybrid-retrieval.md) | 002 | 30m | ⚪ Todo |
+| 006 | [Smarter matching (hybrid retrieval with pgvector)](006-hybrid-retrieval.md) | 002 | 40m | ⚪ Todo |
 | 007 | [Store FAQ answers](007-store-faq.md) | 002 | 10m | ✅ Done |
-| 008 | [Human-like WhatsApp experience](008-human-like-whatsapp.md) | 003, 004 | 30m | ⚪ Todo |
+| 008 | [Human-like WhatsApp experience](008-human-like-whatsapp.md) | 003, 004 | 30m | ✅ Done ⏳ |
 | 009 | [Resilience: LLM fallback & graceful failure](009-resilience.md) | 002 | 20m | 🔵 In progress |
 | 010 | [Human handoff](010-human-handoff.md) | 003, 004 | 20m | ⚪ Todo |
 | 011 | [Returning customer](011-returning-customer.md) | 005 | 15m | ⚪ Todo |
-| 012 | [Load test](012-load-test.md) | 008 | 20m | ⚪ Todo |
+| 012 | [Load test](012-load-test.md) | 008 | 20m | ✅ Done ⏳ |
 | 013 | [README & demo](013-readme-demo.md) | all | 10m | ⚪ Todo |
 
 Statuses: ⚪ Todo · 🟡 Ready · 🔵 In progress · ✅ Done

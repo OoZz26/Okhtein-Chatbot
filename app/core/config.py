@@ -64,6 +64,12 @@ class Settings(BaseSettings):
     max_discovery_questions: int = 3
     debounce_seconds: float = 4.0
     webhook_dedup_ttl_seconds: int = 3600
+    lock_ttl_seconds: int = 120
+    lock_wait_seconds: float = 90.0
+    max_bubbles: int = 3
+    typing_seconds_per_char: float = 0.03
+    typing_max_delay_seconds: float = 3.0
+    send_rate_limit_per_minute: int = 20
     allowed_numbers: str = Field(default="", description="Comma-separated; if set, reply only to these")
 
     @property

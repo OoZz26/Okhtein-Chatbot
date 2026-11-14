@@ -3,6 +3,7 @@
 from typing import Any
 
 from app.domain.models import Product
+from app.domain.pricing import format_price
 from app.domain.retrieval.keyword import KeywordSearch, SearchQuery
 
 
@@ -49,11 +50,6 @@ class SearchProductsTool:
             "title": product.title,
             "category": product.category,
             "color": product.color,
-            "price": self._format_price(product),
+            "price": format_price(product, self._currency),
             "in_stock": product.available,
         }
-
-    def _format_price(self, product: Product) -> str:
-        if product.price_max != product.price_min:
-            return f"{product.price_min:,.0f} - {product.price_max:,.0f} {self._currency}"
-        return f"{product.price_min:,.0f} {self._currency}"

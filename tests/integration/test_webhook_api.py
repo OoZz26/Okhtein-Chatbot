@@ -3,28 +3,30 @@ import hashlib
 import hmac
 import json
 import time
+from dataclasses import dataclass
 from typing import Any
 
+import httpx
 import pytest
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
 
 from app.api.webhook import get_hmac_key, get_incoming_message_service
 from app.domain.agent.sales_agent import SalesAgent, load_system_prompt
 from app.domain.models import LLMResponse
 from app.domain.tools.base import ToolRegistry
 from app.main import create_app
-from app.services.incoming_message_service import IncomingMessageService
+from app.services.debouncer import Debouncer
 from tests.fakes import (
     FakeGateway,
     FakeLLM,
-    InMemoryIdempotency,
     InMemoryProducts,
     make_chat_service,
+    make_incoming,
     make_product,
 )
 
 KEY = "test-hmac-key"
+CLUTCH = make_product("black-clutch")
 REPLY = LLMResponse(json.dumps({"message": "Hello!", "product_handles": ["black-clutch"]}))
 WEBHOOK_BODY = {
     "event": "message",
@@ -39,69 +41,86 @@ class SlowLLM(FakeLLM):
         return await super().chat(messages, tools, response_schema)
 
 
+@dataclass
+class Wired:
+    app: FastAPI
+    gateway: FakeGateway
+    debouncer: Debouncer
+
+    def client(self) -> httpx.AsyncClient:
+        return httpx.AsyncClient(transport=httpx.ASGITransport(app=self.app), base_url="http://test")
+
+
 def sign(body: bytes, key: str = KEY) -> dict[str, str]:
     return {"X-Webhook-Hmac": hmac.new(key.encode(), body, hashlib.sha512).hexdigest()}
 
 
-def wired_app(llm: FakeLLM) -> tuple[FastAPI, FakeGateway]:
-    products = InMemoryProducts([make_product("black-clutch")])
-    agent = SalesAgent(llm, ToolRegistry([]), products, load_system_prompt(), 3)
-    gateway = FakeGateway()
-    service = IncomingMessageService(make_chat_service(agent), gateway, InMemoryIdempotency())
+def wired_app(llm: FakeLLM) -> Wired:
+    agent = SalesAgent(llm, ToolRegistry([]), InMemoryProducts([CLUTCH]), load_system_prompt(), 3)
+    incoming, debouncer, gateway = make_incoming(make_chat_service(agent), products=[CLUTCH])
     app = create_app()
-    app.dependency_overrides[get_incoming_message_service] = lambda: service
+    app.dependency_overrides[get_incoming_message_service] = lambda: incoming
     app.dependency_overrides[get_hmac_key] = lambda: KEY
-    return app, gateway
+    return Wired(app, gateway, debouncer)
 
 
 @pytest.fixture
-def wired() -> tuple[TestClient, FakeGateway]:
-    app, gateway = wired_app(FakeLLM([REPLY] * 5))
-    return TestClient(app), gateway
+def wired() -> Wired:
+    return wired_app(FakeLLM([REPLY] * 5))
 
 
-def post(client: TestClient, body: dict[str, Any], headers: dict[str, str] | None = None) -> Any:
+async def post(wired: Wired, body: dict[str, Any], headers: dict[str, str] | None = None) -> httpx.Response:
     raw = json.dumps(body).encode()
-    return client.post("/webhook", content=raw, headers=headers if headers is not None else sign(raw))
+    async with wired.client() as client:
+        return await client.post(
+            "/webhook", content=raw, headers=headers if headers is not None else sign(raw)
+        )
 
 
-def test_valid_webhook_gets_one_reply(wired: tuple[TestClient, FakeGateway]) -> None:
-    client, gateway = wired
-    assert post(client, WEBHOOK_BODY).json() == {"status": "accepted"}
-    assert [chat for chat, _ in gateway.sent] == ["201001234567@c.us"]
+async def test_valid_webhook_gets_one_reply(wired: Wired) -> None:
+    response = await post(wired, WEBHOOK_BODY)
+    await wired.debouncer.wait_idle()
+
+    assert response.json() == {"status": "accepted"}
+    assert [chat for chat, _ in wired.gateway.sent] == ["201001234567@c.us"]
 
 
-def test_same_event_delivered_twice_gets_one_reply(wired: tuple[TestClient, FakeGateway]) -> None:
-    client, gateway = wired
-    post(client, WEBHOOK_BODY)
-    post(client, WEBHOOK_BODY)
-    assert len(gateway.sent) == 1
+async def test_same_event_delivered_twice_gets_one_reply(wired: Wired) -> None:
+    await post(wired, WEBHOOK_BODY)
+    await post(wired, WEBHOOK_BODY)
+    await wired.debouncer.wait_idle()
+
+    assert len(wired.gateway.sent) == 1
 
 
 @pytest.mark.parametrize("headers", [{}, {"X-Webhook-Hmac": "deadbeef"}, sign(b"{}", key="wrong")])
-def test_unauthenticated_calls_are_rejected(
-    wired: tuple[TestClient, FakeGateway], headers: dict[str, str]
-) -> None:
-    client, gateway = wired
-    assert post(client, WEBHOOK_BODY, headers).status_code == 401
-    assert gateway.sent == []
+async def test_unauthenticated_calls_are_rejected(wired: Wired, headers: dict[str, str]) -> None:
+    response = await post(wired, WEBHOOK_BODY, headers)
+    await wired.debouncer.wait_idle()
+
+    assert response.status_code == 401
+    assert wired.gateway.sent == []
 
 
-def test_missing_server_key_rejects_everything() -> None:
-    app, gateway = wired_app(FakeLLM([REPLY]))
-    app.dependency_overrides[get_hmac_key] = lambda: ""
-    assert post(TestClient(app), WEBHOOK_BODY, {"X-Webhook-Hmac": "x"}).status_code == 401
-    assert gateway.sent == []
+async def test_missing_server_key_rejects_everything() -> None:
+    wired = wired_app(FakeLLM([REPLY]))
+    wired.app.dependency_overrides[get_hmac_key] = lambda: ""
+
+    response = await post(wired, WEBHOOK_BODY, {"X-Webhook-Hmac": "x"})
+
+    assert response.status_code == 401
+    assert wired.gateway.sent == []
 
 
-def test_other_events_are_acknowledged_and_ignored(wired: tuple[TestClient, FakeGateway]) -> None:
-    client, gateway = wired
-    assert post(client, {"event": "session.status", "payload": {}}).json() == {"status": "ignored"}
-    assert gateway.sent == []
+async def test_other_events_are_acknowledged_and_ignored(wired: Wired) -> None:
+    response = await post(wired, {"event": "session.status", "payload": {}})
+
+    assert response.json() == {"status": "ignored"}
+    assert wired.gateway.sent == []
 
 
 async def test_webhook_answers_fast_even_when_the_llm_is_slow() -> None:
-    app, gateway = wired_app(SlowLLM([REPLY]))
+    wired = wired_app(SlowLLM([REPLY]))
     raw = json.dumps(WEBHOOK_BODY).encode()
     headers = [
         (b"content-type", b"application/json"),
@@ -122,9 +141,10 @@ async def test_webhook_answers_fast_even_when_the_llm_is_slow() -> None:
         if event["type"] == "http.response.body" and not event.get("more_body"):
             responded_at.append(time.perf_counter() - started)
 
-    await app(scope, receive, send)  # type: ignore[arg-type]
-    total = time.perf_counter() - started
+    await wired.app(scope, receive, send)  # type: ignore[arg-type]
+    assert responded_at[0] < 0.2  # answered before the slow LLM even finished
+    assert wired.gateway.sent == []  # nothing was sent yet: the reply is still being generated
 
-    assert responded_at[0] < 0.2
-    assert total > 0.5  # the slow LLM really did run, after the response had gone out
-    assert len(gateway.sent) == 1
+    await wired.debouncer.wait_idle()
+    assert time.perf_counter() - started > 0.5  # the slow LLM really did run, after the response went out
+    assert len(wired.gateway.sent) == 1

@@ -7,6 +7,14 @@ from typing import Any
 
 from app.domain.models import Product
 
+JPEG_QUERY = "format=jpg&width=900"  # Shopify's CDN converts and resizes on request
+
+
+def _jpeg_url(url: str) -> str:
+    if not url:
+        return ""
+    return f"{url}{'&' if '?' in url else '?'}{JPEG_QUERY}"
+
 
 class JsonProductRepository:
     def __init__(self, path: Path) -> None:
@@ -32,4 +40,5 @@ class JsonProductRepository:
             available=bool(item["available"]),
             tags=tuple(item.get("tags") or ()),
             description=item.get("description") or "",
+            image_url=_jpeg_url((item.get("images") or [""])[0]),
         )

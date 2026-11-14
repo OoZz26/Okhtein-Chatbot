@@ -18,6 +18,7 @@ class Product:
     available: bool
     tags: tuple[str, ...] = ()
     description: str = ""
+    image_url: str = ""
 
 
 @dataclass(frozen=True)
@@ -92,3 +93,17 @@ class IncomingMessage:
     is_group: bool = False
     is_status: bool = False
     has_media: bool = False
+
+
+@dataclass(frozen=True)
+class ProductCard:
+    """What a recommended product looks like on WhatsApp: a picture with a caption."""
+
+    title: str
+    price_text: str
+    link: str
+    image_url: str
+
+    @property
+    def caption(self) -> str:
+        return "\n".join([f"*{self.title}*", self.price_text, self.link])

@@ -34,6 +34,12 @@ class MessagingGateway(Protocol):
 
     async def mark_seen(self, chat_id: str) -> None: ...
 
+    async def send_image(self, chat_id: str, image_url: str, caption: str) -> None: ...
+
+    async def start_typing(self, chat_id: str) -> None: ...
+
+    async def stop_typing(self, chat_id: str) -> None: ...
+
 
 class IdempotencyStore(Protocol):
     """Remembers which keys were already handled."""
@@ -93,3 +99,37 @@ class StoreInfoSource(Protocol):
     """Where the store's own facts (returns policy, brand story, ...) come from."""
 
     def get_knowledge(self) -> str: ...
+
+
+class MessageBuffer(Protocol):
+    """Collects a customer's burst of messages until they stop typing."""
+
+    async def push(self, chat_id: str, text: str) -> int:
+        """Store the message and return its sequence number (a newer push has a higher one)."""
+        ...
+
+    async def latest_sequence(self, chat_id: str) -> int: ...
+
+    async def drain(self, chat_id: str) -> list[str]:
+        """Atomically return and clear everything buffered, oldest first."""
+        ...
+
+
+class ChatLock(Protocol):
+    """A per-chat mutex so two replies are never generated for the same chat at once."""
+
+    async def acquire(self, chat_id: str) -> str | None:
+        """Return a token if the lock was taken, None if someone else holds it."""
+        ...
+
+    async def release(self, chat_id: str, token: str) -> None:
+        """Release only if `token` still owns the lock (it may have expired and been re-taken)."""
+        ...
+
+
+class RateLimiter(Protocol):
+    """Caps how many messages we send per minute (an unofficial gateway punishes spammy accounts)."""
+
+    async def seconds_until_allowed(self) -> float:
+        """Take one slot and return 0.0, or return how long to wait when the limit is reached."""
+        ...

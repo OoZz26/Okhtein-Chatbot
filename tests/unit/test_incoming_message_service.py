@@ -1,21 +1,24 @@
 import json
+from dataclasses import dataclass
 
 import pytest
 
 from app.domain.agent.sales_agent import SalesAgent, load_system_prompt
 from app.domain.models import IncomingMessage, LLMResponse
 from app.domain.tools.base import ToolRegistry
+from app.services.debouncer import Debouncer
 from app.services.incoming_message_service import TEXT_ONLY_REPLY, IncomingMessageService
 from tests.fakes import (
     FakeGateway,
     FakeLLM,
-    InMemoryIdempotency,
     InMemoryProducts,
     make_chat_service,
+    make_incoming,
     make_product,
 )
 
 CUSTOMER = "201001234567@c.us"
+CLUTCH = make_product("black-clutch")
 
 
 def message(**overrides: object) -> IncomingMessage:
@@ -24,36 +27,40 @@ def message(**overrides: object) -> IncomingMessage:
     return IncomingMessage(**fields)  # type: ignore[arg-type]
 
 
-def build(
-    llm_replies: int = 5, allowed: frozenset[str] = frozenset()
-) -> tuple[IncomingMessageService, FakeGateway]:
-    products = InMemoryProducts([make_product("black-clutch")])
+@dataclass
+class Rig:
+    incoming: IncomingMessageService
+    debouncer: Debouncer
+    gateway: FakeGateway
+
+    async def deliver(self, *messages: IncomingMessage) -> None:
+        for item in messages:
+            await self.incoming.handle(item)
+        await self.debouncer.wait_idle()
+
+
+def build(allowed: frozenset[str] = frozenset()) -> Rig:
+    products = InMemoryProducts([CLUTCH])
     reply = LLMResponse(json.dumps({"message": "Hello!", "product_handles": ["black-clutch"]}))
-    agent = SalesAgent(FakeLLM([reply] * llm_replies), ToolRegistry([]), products, load_system_prompt(), 3)
-    gateway = FakeGateway()
-    service = IncomingMessageService(
-        make_chat_service(agent),
-        gateway,
-        InMemoryIdempotency(),
-        allowed,
-    )
-    return service, gateway
+    agent = SalesAgent(FakeLLM([reply] * 5), ToolRegistry([]), products, load_system_prompt(), 3)
+    incoming, debouncer, gateway = make_incoming(make_chat_service(agent), allowed=allowed, products=[CLUTCH])
+    return Rig(incoming, debouncer, gateway)
 
 
 async def test_customer_message_gets_a_reply_in_the_same_chat() -> None:
-    service, gateway = build()
-    await service.handle(message())
+    rig = build()
+    await rig.deliver(message())
 
-    assert gateway.seen == [CUSTOMER]
-    assert gateway.sent == [(CUSTOMER, "Hello!\n\nhttps://eg.okhtein.com/products/black-clutch")]
+    assert rig.gateway.seen == [CUSTOMER]
+    assert rig.gateway.sent == [(CUSTOMER, "Hello!")]
+    assert [image[0] for image in rig.gateway.images] == [CUSTOMER]  # the product arrives as a card
 
 
 async def test_duplicate_delivery_gets_exactly_one_reply() -> None:
-    service, gateway = build()
-    await service.handle(message())
-    await service.handle(message())
+    rig = build()
+    await rig.deliver(message(), message())
 
-    assert len(gateway.sent) == 1
+    assert len(rig.gateway.sent) == 1
 
 
 @pytest.mark.parametrize(
@@ -66,23 +73,22 @@ async def test_duplicate_delivery_gets_exactly_one_reply() -> None:
     ids=["own message", "group", "status broadcast"],
 )
 async def test_ignored_messages_produce_no_reply(overrides: dict[str, object]) -> None:
-    service, gateway = build()
-    await service.handle(message(**overrides))
+    rig = build()
+    await rig.deliver(message(**overrides))
 
-    assert gateway.sent == []
-    assert gateway.seen == []
+    assert rig.gateway.sent == []
+    assert rig.gateway.seen == []
 
 
 async def test_media_gets_the_kind_text_only_reply() -> None:
-    service, gateway = build()
-    await service.handle(message(text="", has_media=True))
+    rig = build()
+    await rig.deliver(message(text="", has_media=True))
 
-    assert gateway.sent == [(CUSTOMER, TEXT_ONLY_REPLY)]
+    assert rig.gateway.sent == [(CUSTOMER, TEXT_ONLY_REPLY)]
 
 
 async def test_only_allowed_numbers_get_replies() -> None:
-    service, gateway = build(allowed=frozenset({"201001234567"}))
-    await service.handle(message(message_id="a"))
-    await service.handle(message(message_id="b", chat_id="209999999999@c.us"))
+    rig = build(allowed=frozenset({"201001234567"}))
+    await rig.deliver(message(message_id="a"), message(message_id="b", chat_id="209999999999@c.us"))
 
-    assert [chat for chat, _ in gateway.sent] == [CUSTOMER]
+    assert [chat for chat, _ in rig.gateway.sent] == [CUSTOMER]

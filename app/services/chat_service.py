@@ -28,6 +28,7 @@ class ChatResult:
     links: list[str]
     stage: ConversationStage
     degraded: bool = False
+    message: str = ""  # the text WITHOUT product links, for channels that send product cards
 
 
 class ChatService:
@@ -73,7 +74,9 @@ class ChatService:
             len(links),
             self._elapsed_ms(started),
         )
-        return ChatResult(reply, agent_reply.product_handles, links, new_state.stage)
+        return ChatResult(
+            reply, agent_reply.product_handles, links, new_state.stage, message=agent_reply.message
+        )
 
     async def _degrade(
         self, chat_id: str, stage: ConversationStage, error: LLMError, started: float
@@ -86,7 +89,7 @@ class ChatService:
             error,
         )
         await self._follow_ups.flag(chat_id, FOLLOW_UP_REASON)
-        return ChatResult(HOLDING_MESSAGE, [], [], stage, degraded=True)
+        return ChatResult(HOLDING_MESSAGE, [], [], stage, degraded=True, message=HOLDING_MESSAGE)
 
     @staticmethod
     def _elapsed_ms(started: float) -> int:

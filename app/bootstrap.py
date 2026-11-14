@@ -16,7 +16,10 @@ from app.domain.llm.fallback_chain import FallbackLLMProvider, ProviderSlot
 from app.domain.retrieval.keyword import KeywordSearch
 from app.domain.tools.base import ToolRegistry
 from app.domain.tools.search_products import SearchProductsTool
+from app.infra.cache.redis_buffer import RedisMessageBuffer
 from app.infra.cache.redis_idempotency import RedisIdempotencyStore
+from app.infra.cache.redis_lock import RedisChatLock
+from app.infra.cache.redis_rate_limiter import RedisRateLimiter
 from app.infra.cache.redis_session_store import RedisSessionStore
 from app.infra.cache.redis_short_term import RedisShortTermMemory
 from app.infra.catalog.file_store_info import FileStoreInfoSource
@@ -27,8 +30,12 @@ from app.infra.db.session import create_engine, create_session_factory, create_t
 from app.infra.llm.openai_provider import OpenAICompatibleProvider
 from app.infra.whatsapp.waha_gateway import WahaGateway
 from app.services.chat_service import ChatService
+from app.services.debouncer import Debouncer
 from app.services.incoming_message_service import IncomingMessageService
 from app.services.memory_service import MemoryService
+from app.services.product_cards import ProductCardFactory
+from app.services.reply_sender import ReplySender
+from app.services.reply_service import ReplyService
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +51,11 @@ def _engine() -> AsyncEngine:
     return create_engine(
         s.postgres_host, s.postgres_port, s.postgres_user, s.postgres_password, s.postgres_db
     )
+
+
+@lru_cache
+def _products() -> JsonProductRepository:
+    return JsonProductRepository(Path(get_settings().products_path))
 
 
 @lru_cache
@@ -98,7 +110,7 @@ def build_llm(settings: Settings) -> FallbackLLMProvider:
 @lru_cache
 def build_agent() -> SalesAgent:
     settings = get_settings()
-    products = JsonProductRepository(Path(settings.products_path))
+    products = _products()
     search_tool = SearchProductsTool(
         KeywordSearch(products), settings.store_currency, settings.search_result_limit
     )
@@ -128,12 +140,29 @@ def build_chat_service() -> ChatService:
 @lru_cache
 def build_incoming_message_service() -> IncomingMessageService:
     settings = get_settings()
+    gateway = WahaGateway(
+        settings.waha_url, settings.waha_api_key, settings.waha_session, settings.waha_timeout_seconds
+    )
+    sender = ReplySender(
+        gateway,
+        RedisRateLimiter(_redis(), settings.send_rate_limit_per_minute),
+        settings.max_bubbles,
+        settings.typing_seconds_per_char,
+        settings.typing_max_delay_seconds,
+    )
+    cards = ProductCardFactory(_products(), settings.store_url, settings.store_currency)
+    replies = ReplyService(build_chat_service(), gateway, sender, cards)
+    debouncer = Debouncer(
+        buffer=RedisMessageBuffer(_redis()),
+        lock=RedisChatLock(_redis(), settings.lock_ttl_seconds * 1000),
+        process=replies.reply,
+        quiet_seconds=settings.debounce_seconds,
+        lock_wait_seconds=settings.lock_wait_seconds,
+    )
     return IncomingMessageService(
-        chat_service=build_chat_service(),
-        gateway=WahaGateway(
-            settings.waha_url, settings.waha_api_key, settings.waha_session, settings.waha_timeout_seconds
-        ),
+        gateway=gateway,
         idempotency=RedisIdempotencyStore(_redis(), settings.webhook_dedup_ttl_seconds),
+        debouncer=debouncer,
         allowed_numbers=settings.allowed_number_set,
     )
 

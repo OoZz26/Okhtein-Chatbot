@@ -41,3 +41,14 @@ class WahaGateway:
                 response.raise_for_status()
         except httpx.HTTPError as exc:
             raise MessagingError(f"WAHA request to {path} failed: {exc}") from exc
+
+    async def send_image(self, chat_id: str, image_url: str, caption: str) -> None:
+        file = {"mimetype": "image/jpeg", "url": image_url, "filename": "product.jpg"}
+        await self._post("/api/sendImage", {"chatId": chat_id, "file": file, "caption": caption})
+        logger.info("Sent an image to %s", mask_chat_id(chat_id))
+
+    async def start_typing(self, chat_id: str) -> None:
+        await self._post("/api/startTyping", {"chatId": chat_id})
+
+    async def stop_typing(self, chat_id: str) -> None:
+        await self._post("/api/stopTyping", {"chatId": chat_id})

@@ -7,17 +7,15 @@ import pytest
 from app.domain.agent.sales_agent import SalesAgent, load_system_prompt
 from app.domain.errors import AllProvidersFailedError, PermanentLLMError
 from app.domain.llm.fallback_chain import FallbackLLMProvider, ProviderSlot
-from app.domain.models import LLMResponse
+from app.domain.models import IncomingMessage, LLMResponse
 from app.domain.tools.base import ToolRegistry
 from app.services.chat_service import FOLLOW_UP_REASON, HOLDING_MESSAGE, ChatService
-from app.services.incoming_message_service import IncomingMessageService
 from tests.fakes import (
-    FakeGateway,
     InMemoryFollowUps,
-    InMemoryIdempotency,
     InMemoryProducts,
     ScriptedProvider,
     make_chat_service,
+    make_incoming,
     make_product,
 )
 
@@ -86,11 +84,11 @@ async def test_the_incident_is_logged_with_a_masked_chat_id(caplog: pytest.LogCa
 
 async def test_over_whatsapp_the_holding_message_is_what_gets_sent() -> None:
     chat, _ = service_over(ScriptedProvider(AllProvidersFailedError(["x"])))
-    gateway = FakeGateway()
-    incoming = IncomingMessageService(chat, gateway, InMemoryIdempotency())
-
-    from app.domain.models import IncomingMessage
+    incoming, debouncer, gateway = make_incoming(chat)
 
     await incoming.handle(IncomingMessage("m1", CHAT, "hi"))
+    await debouncer.wait_idle()
 
-    assert gateway.sent == [(CHAT, HOLDING_MESSAGE)]
+    assert [text for _, text in gateway.sent] == [HOLDING_MESSAGE]  # one short message, one bubble
+    assert gateway.events[0] == "typing_on"
+    assert gateway.events[-1] == "typing_off"

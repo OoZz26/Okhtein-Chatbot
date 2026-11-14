@@ -1,6 +1,6 @@
 # 008 — Human-like WhatsApp experience
 
-**Status:** ⚪ Todo · **Estimate:** 30 min
+**Status:** ✅ Done (code) · ⏳ manual phone checks pending, see docs/morning-checklist.md · **Estimate:** 30 min
 
 ## What to build
 
@@ -18,12 +18,12 @@ The bot behaves like a person on WhatsApp, which also lowers the ban risk of an 
 
 ## Acceptance criteria
 
-- [ ] 3 messages within 2 seconds → exactly one reply that addresses all of them (test with a fake gateway)
-- [ ] Two bursts racing on the same chat never produce interleaved or duplicate replies (test)
-- [ ] Typing indicator visible on the phone before the reply (manual)
-- [ ] Recommended products arrive as image cards with name, price and working link (manual)
-- [ ] Image send failure falls back to a text link (test)
-- [ ] Outgoing rate limit is configurable and enforced (test)
+- [x] 3 messages within 2 seconds → exactly one reply that addresses all of them (test with a fake gateway)
+- [x] Two bursts racing on the same chat never produce interleaved or duplicate replies (test)
+- [ ] Typing indicator visible on the phone before the reply (manual) — ⏳ needs manual check
+- [ ] Recommended products arrive as image cards with name, price and working link (manual) — ⏳ needs manual check
+- [x] Image send failure falls back to a text link (test)
+- [x] Outgoing rate limit is configurable and enforced (test)
 
 ## Blocked by
 
