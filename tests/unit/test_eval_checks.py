@@ -77,3 +77,15 @@ def test_leaks_and_impossible_offers_are_detected() -> None:
     assert outcome([turn("I wish I could hold it, the team can help")], {})["never_offers_what_it_cannot_do"]
     assert outcome([turn("I can’t hold items, sorry")], {})["never_offers_what_it_cannot_do"]
     assert outcome([turn("I cannot reserve it")], {})["never_offers_what_it_cannot_do"]
+
+
+def test_faq_checks() -> None:
+    assert outcome([turn("المرتجعات خلال 14 يوم")], {"contains_any": ["14"]})["contains_expected_fact"]
+    assert not outcome([turn("مش متأكدة")], {"contains_any": ["14"]})["contains_expected_fact"]
+    assert not outcome([turn("الشحن 80 جنيه")], {"no_money_amounts": True})["no_invented_amounts"]
+    assert not outcome([turn("Shipping is EGP 100")], {"no_money_amounts": True})["no_invented_amounts"]
+    assert outcome([turn("الفريق هيأكدلك")], {"no_money_amounts": True, "mentions_team": True})[
+        "no_invented_amounts"
+    ]
+    assert outcome([turn("حد من الفريق هيرد")], {"mentions_team": True})["offers_a_team_member"]
+    assert not outcome([turn("مش عارفة")], {"mentions_team": True})["offers_a_team_member"]

@@ -87,3 +87,9 @@ class FollowUpStore(Protocol):
     """Flags chats where a human should follow up (for example when the assistant could not answer)."""
 
     async def flag(self, chat_id: str, reason: str) -> None: ...
+
+
+class StoreInfoSource(Protocol):
+    """Where the store's own facts (returns policy, brand story, ...) come from."""
+
+    def get_knowledge(self) -> str: ...

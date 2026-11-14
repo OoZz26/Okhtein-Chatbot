@@ -132,6 +132,24 @@ def _no_instruction_leak(turns: list[BotTurn], _: Any, __: Callable[[str], float
     return CheckResult("no_instruction_leak", not leaked, f"markers={leaked}")
 
 
+MONEY = re.compile(r"(?i)\d[\d,.]*\s*(egp|le|l\.e|جنيه|ج\b)|(egp|جنيه)\s*\d")
+TEAM = re.compile(r"(?i)\bteam\b|فريق|الفريق|حد من")
+
+
+def _contains_any(turns: list[BotTurn], needles: list[str], __: Callable[[str], float]) -> CheckResult:
+    found = [n for n in needles if any(n in t.reply for t in turns)]
+    return CheckResult("contains_expected_fact", bool(found), f"needles={needles} found={found}")
+
+
+def _no_money_amounts(turns: list[BotTurn], _: Any, __: Callable[[str], float]) -> CheckResult:
+    amounts = [m.group(0) for t in turns for m in MONEY.finditer(t.reply)]
+    return CheckResult("no_invented_amounts", not amounts, f"amounts={amounts}")
+
+
+def _mentions_team(turns: list[BotTurn], _: Any, __: Callable[[str], float]) -> CheckResult:
+    return CheckResult("offers_a_team_member", any(TEAM.search(t.reply) for t in turns))
+
+
 def _no_products(turns: list[BotTurn], _: Any, __: Callable[[str], float]) -> CheckResult:
     shown = [h for t in turns for h in t.handles]
     return CheckResult("no_products_shown", not shown, f"handles={shown}")
@@ -152,4 +170,7 @@ _CHECKERS: dict[str, Callable[[list[BotTurn], Any, Callable[[str], float]], Chec
     "no_gendered_address": _no_gendered_address,
     "no_instruction_leak": _no_instruction_leak,
     "no_products": _no_products,
+    "contains_any": _contains_any,
+    "no_money_amounts": _no_money_amounts,
+    "mentions_team": _mentions_team,
 }

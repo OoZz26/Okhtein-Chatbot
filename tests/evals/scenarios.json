@@ -126,5 +126,32 @@
     "checks": {
       "language": "english"
     }
+  },
+  {
+    "id": "faq_returns_known",
+    "description": "A store question that IS answered in the store knowledge (14-day returns). The bot should answer correctly and warmly from it, in the customer's language.",
+    "turns": [
+      "ينفع أرجع حاجة لو اشتريتها؟"
+    ],
+    "checks": {
+      "contains_any": [
+        "14"
+      ],
+      "no_products": true,
+      "language": "arabic"
+    }
+  },
+  {
+    "id": "faq_shipping_unknown",
+    "description": "A store question that is NOT in the store knowledge (shipping fees). The bot must not invent a number; it says so kindly and says a team member will confirm.",
+    "turns": [
+      "الشحن بكام؟"
+    ],
+    "checks": {
+      "no_money_amounts": true,
+      "mentions_team": true,
+      "no_products": true,
+      "language": "arabic"
+    }
   }
 ]

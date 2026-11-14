@@ -9,8 +9,9 @@ from typing import Any
 
 from app.domain.discovery import PROFILE_SLOT_NAMES
 from app.domain.errors import LLMError
+from app.domain.knowledge import render_store_knowledge
 from app.domain.models import AgentContext, AgentReply, ChatMessage, ConversationStage
-from app.domain.ports import LLMProvider, ProductRepository
+from app.domain.ports import LLMProvider, ProductRepository, StoreInfoSource
 from app.domain.tools.base import ToolRegistry
 
 logger = logging.getLogger(__name__)
@@ -52,12 +53,15 @@ class SalesAgent:
         products: ProductRepository,
         system_prompt: str,
         max_tool_rounds: int,
+        *,
+        store_info: StoreInfoSource | None = None,
     ) -> None:
         self._llm = llm
         self._tools = tools
         self._products = products
         self._system_prompt = system_prompt
         self._max_tool_rounds = max_tool_rounds
+        self._store_info = store_info
 
     async def respond(
         self,
@@ -97,7 +101,16 @@ class SalesAgent:
             notes.append(f"Already known about the customer: {context.profile_summary}. Do not ask again.")
         if context.guidance:
             notes.append(context.guidance)
-        return self._system_prompt + "\n\n## Session notes\n" + "\n".join(f"- {note}" for note in notes)
+        session_notes = "## Session notes\n" + "\n".join(f"- {note}" for note in notes)
+        sections = [self._system_prompt, self._knowledge_section(), session_notes]
+        return "\n\n".join(section for section in sections if section)
+
+    def _knowledge_section(self) -> str:
+        """The owner-edited store facts, re-read when the file changes. Empty when no source is wired."""
+        raw = self._store_info.get_knowledge() if self._store_info else ""
+        if not raw.strip():
+            return ""
+        return "# Store knowledge (your ONLY source for store questions)\n\n" + render_store_knowledge(raw)
 
     @staticmethod
     def _clean_display_name(raw: str) -> str:

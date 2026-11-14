@@ -19,6 +19,7 @@ from app.domain.tools.search_products import SearchProductsTool
 from app.infra.cache.redis_idempotency import RedisIdempotencyStore
 from app.infra.cache.redis_session_store import RedisSessionStore
 from app.infra.cache.redis_short_term import RedisShortTermMemory
+from app.infra.catalog.file_store_info import FileStoreInfoSource
 from app.infra.catalog.json_repository import JsonProductRepository
 from app.infra.db.conversation_store import PostgresConversationStore
 from app.infra.db.follow_up_store import PostgresFollowUpStore
@@ -107,6 +108,7 @@ def build_agent() -> SalesAgent:
         products=products,
         system_prompt=load_system_prompt(settings.prompt_version),
         max_tool_rounds=settings.max_tool_rounds,
+        store_info=FileStoreInfoSource(Path(settings.knowledge_path)),
     )
 
 

@@ -1,6 +1,6 @@
 # 007 — Store FAQ answers
 
-**Status:** ⚪ Todo · **Estimate:** 10 min
+**Status:** ✅ Done · **Estimate:** 10 min
 
 ## What to build
 
@@ -14,11 +14,11 @@ later). Editing the file changes answers without touching code.
 
 ## Acceptance criteria
 
-- [ ] "Can I return an item?" → correct 14-day policy, in the customer's language
-- [ ] "How much is shipping?" → no invented number; offers a team member
-- [ ] Editing the knowledge file changes the answer after a reload, no code change
-- [ ] Eval scenarios cover a known answer and an unknown answer
-- [ ] Unit test with a fake store-info source
+- [x] "Can I return an item?" → correct 14-day policy, in the customer's language
+- [x] "How much is shipping?" → no invented number; offers a team member
+- [x] Editing the knowledge file changes the answer after a reload, no code change
+- [x] Eval scenarios cover a known answer and an unknown answer
+- [x] Unit test with a fake store-info source
 
 ## Blocked by
 
