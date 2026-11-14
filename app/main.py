@@ -8,7 +8,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app import bootstrap
-from app.api import admin, chat, health, webhook
+from app.api import admin, chat, debug, health, webhook
+from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.domain.errors import ConfigurationError, LLMError
 
@@ -26,7 +27,9 @@ async def _misconfigured(_: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(status_code=500, content={"detail": str(exc)})
 
 
-def create_app(startup: Hook | None = None, shutdown: Hook | None = None) -> FastAPI:
+def create_app(
+    startup: Hook | None = None, shutdown: Hook | None = None, load_test_mode: bool = False
+) -> FastAPI:
     """Build the app. Startup/shutdown hooks are injected so tests can run without Docker services."""
     configure_logging()
 
@@ -43,9 +46,15 @@ def create_app(startup: Hook | None = None, shutdown: Hook | None = None) -> Fas
     app.include_router(chat.router)
     app.include_router(webhook.router)
     app.include_router(admin.router)
+    if load_test_mode:  # the debug endpoints exist only while the fakes are wired
+        app.include_router(debug.router)
     app.add_exception_handler(LLMError, _llm_unavailable)
     app.add_exception_handler(ConfigurationError, _misconfigured)
     return app
 
 
-app = create_app(startup=bootstrap.init_storage, shutdown=bootstrap.close_storage)
+app = create_app(
+    startup=bootstrap.init_storage,
+    shutdown=bootstrap.close_storage,
+    load_test_mode=get_settings().load_test_mode,
+)

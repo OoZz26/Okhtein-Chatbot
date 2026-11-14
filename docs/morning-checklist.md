@@ -54,3 +54,6 @@ Note: `redis-cli FLUSHALL` between messages will NOT trigger "welcome back" (the
 ```bash
 docker compose exec postgres psql -U okhtein -d okhtein -c "select chat_id, profile from customers where profile is not null"
 ```
+
+### 012: Load test (nothing manual; optional re-run)
+Done and measured overnight (results in `docs/load-test-results.md`): webhook p95 **23 ms**, 0 failures at 100 simulated customers; 160/160 bursts got exactly one reply; 10 real-LLM conversations ran without errors, retries or fallbacks (replies took 20-40 s, all LLM time). To re-run: `python scripts/run_load_test.py` (isolated app on port 8001, cleans up after itself). Add nothing to `.env`; load mode is off by default (`LOAD_TEST_MODE=false`) and is refused when `ENVIRONMENT=production`.

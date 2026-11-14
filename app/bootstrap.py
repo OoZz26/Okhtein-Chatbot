@@ -13,7 +13,7 @@ from app.domain.agent.sales_agent import SalesAgent, load_system_prompt
 from app.domain.discovery import DiscoveryPolicy
 from app.domain.errors import ConfigurationError
 from app.domain.llm.fallback_chain import FallbackLLMProvider, ProviderSlot
-from app.domain.ports import StaffNotifier
+from app.domain.ports import LLMProvider, MessagingGateway, StaffNotifier
 from app.domain.profile_summarizer import LLMProfileSummarizer
 from app.domain.retrieval.base import Retriever
 from app.domain.retrieval.keyword import KeywordSearch
@@ -42,6 +42,7 @@ from app.infra.db.profile_store import PostgresProfileStore
 from app.infra.db.session import create_engine, create_session_factory, create_tables
 from app.infra.llm.openai_embedder import OpenAIEmbedder
 from app.infra.llm.openai_provider import OpenAICompatibleProvider
+from app.infra.loadtest.fakes import FakeLatencyLLM, RecordingGateway
 from app.infra.whatsapp.staff_notifier import (
     CompositeStaffNotifier,
     LogStaffNotifier,
@@ -106,8 +107,10 @@ def _openrouter(settings: Settings) -> OpenAICompatibleProvider:
     )
 
 
-def build_llm(settings: Settings) -> FallbackLLMProvider:
+def build_llm(settings: Settings) -> LLMProvider:
     """The provider chain, in the configured order. Providers without an API key are skipped."""
+    if settings.load_test_mode:
+        return FakeLatencyLLM()
     factories: dict[str, tuple[str, Callable[[Settings], OpenAICompatibleProvider]]] = {
         "openai": (settings.openai_api_key, _openai),
         "openrouter": (settings.openrouter_api_key, _openrouter),
@@ -131,7 +134,7 @@ def build_llm(settings: Settings) -> FallbackLLMProvider:
 def build_retriever(settings: Settings, keyword: KeywordSearch) -> Retriever:
     """The configured retrieval strategy. Semantic strategies fall back to keyword search when unavailable."""
     baseline = KeywordRetriever(keyword)
-    if settings.retriever == "keyword":
+    if settings.retriever == "keyword" or settings.load_test_mode:  # no embeddings in a load test
         return baseline
     if settings.retriever not in ("vector", "hybrid"):
         raise ConfigurationError(f"Unknown RETRIEVER {settings.retriever!r}: use keyword, vector or hybrid")
@@ -178,8 +181,16 @@ def build_agent() -> SalesAgent:
 
 
 @lru_cache
-def _gateway() -> WahaGateway:
+def build_recording_gateway() -> RecordingGateway:
+    """Load-test mode only: a gateway that records instead of sending."""
+    return RecordingGateway()
+
+
+@lru_cache
+def _gateway() -> MessagingGateway:
     settings = get_settings()
+    if settings.load_test_mode:
+        return build_recording_gateway()
     return WahaGateway(
         settings.waha_url, settings.waha_api_key, settings.waha_session, settings.waha_timeout_seconds
     )

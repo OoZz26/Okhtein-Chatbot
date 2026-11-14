@@ -6,12 +6,16 @@ object (or a value from it), which keeps the rest of the code easy to test.
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    # --- Runtime ---
+    environment: str = "development"  # development | staging | production
+    load_test_mode: bool = False  # wires a fake LLM and a recording gateway; refused in production
 
     # --- Store ---
     store_url: str = "https://eg.okhtein.com"
@@ -43,6 +47,7 @@ class Settings(BaseSettings):
     # --- Redis (short-term memory) ---
     redis_host: str = "localhost"
     redis_port: int = 6379
+    redis_db: int = 0
 
     # --- Postgres (long-term memory) ---
     postgres_host: str = "localhost"
@@ -78,6 +83,13 @@ class Settings(BaseSettings):
     admin_api_key: str = ""
     allowed_numbers: str = Field(default="", description="Comma-separated; if set, reply only to these")
 
+    @model_validator(mode="after")
+    def _load_test_mode_is_never_production(self) -> "Settings":
+        """Fake LLM + fake WhatsApp must be impossible to enable where real customers are."""
+        if self.load_test_mode and self.environment.lower() == "production":
+            raise ValueError("LOAD_TEST_MODE must never be enabled when ENVIRONMENT=production")
+        return self
+
     @property
     def allowed_number_set(self) -> frozenset[str]:
         entries = (e.strip().lstrip("+") for e in self.allowed_numbers.split(","))
@@ -85,7 +97,7 @@ class Settings(BaseSettings):
 
     @property
     def redis_url(self) -> str:
-        return f"redis://{self.redis_host}:{self.redis_port}/0"
+        return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"
 
     @property
     def postgres_dsn(self) -> str:

@@ -1,6 +1,6 @@
 # 012 — Load test
 
-**Status:** ⚪ Todo · **Estimate:** 20 min
+**Status:** ✅ Done · **Estimate:** 20 min
 
 ## What to build
 
@@ -20,12 +20,14 @@ The fake-LLM / fake-gateway load mode must be impossible to enable in production
 
 ## Acceptance criteria
 
-- [ ] One command runs scenario A headless and saves an HTML + CSV report
-- [ ] 100 simulated customers: webhook p95 < 100 ms and 0% errors
-- [ ] Scenario B: exactly one reply per burst, verified from recorded fake-gateway sends
-- [ ] Scenario C results (latency p50/p95, any 429s, fallback used?) written to a short results doc
-- [ ] Load mode refuses to start when the environment is production
+- [x] One command runs scenario A headless and saves an HTML + CSV report
+- [x] 100 simulated customers: webhook p95 < 100 ms and 0% errors
+- [x] Scenario B: exactly one reply per burst, verified from recorded fake-gateway sends
+- [x] Scenario C results (latency p50/p95, any 429s, fallback used?) written to a short results doc
+- [x] Load mode refuses to start when the environment is production
 
 ## Blocked by
 
 - 008 — Human-like WhatsApp experience
+
+Results and interpretation: [`docs/load-test-results.md`](../load-test-results.md). Run it with `python scripts/run_load_test.py`.
