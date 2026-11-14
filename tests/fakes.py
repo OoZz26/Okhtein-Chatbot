@@ -50,3 +50,28 @@ def make_product(handle: str = "black-clutch", **overrides: Any) -> Product:
 
 def tool_call(arguments: dict[str, Any], call_id: str = "call_1") -> ToolCall:
     return ToolCall(call_id, "search_products", arguments)
+
+
+class FakeGateway:
+    """Records what would have been sent to WhatsApp."""
+
+    def __init__(self) -> None:
+        self.sent: list[tuple[str, str]] = []
+        self.seen: list[str] = []
+
+    async def send_text(self, chat_id: str, text: str) -> None:
+        self.sent.append((chat_id, text))
+
+    async def mark_seen(self, chat_id: str) -> None:
+        self.seen.append(chat_id)
+
+
+class InMemoryIdempotency:
+    def __init__(self) -> None:
+        self._claimed: set[str] = set()
+
+    async def claim(self, key: str) -> bool:
+        if key in self._claimed:
+            return False
+        self._claimed.add(key)
+        return True

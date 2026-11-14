@@ -57,3 +57,17 @@ class AgentReply:
 
     message: str
     product_handles: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class IncomingMessage:
+    """A customer message as the app sees it, independent of the WhatsApp gateway's JSON format."""
+
+    message_id: str
+    chat_id: str
+    text: str
+    sender_name: str = ""
+    from_me: bool = False
+    is_group: bool = False
+    is_status: bool = False
+    has_media: bool = False

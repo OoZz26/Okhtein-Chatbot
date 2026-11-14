@@ -5,7 +5,7 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.api import chat, health
+from app.api import chat, health, webhook
 from app.domain.errors import ConfigurationError, LLMError
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Okhtein WhatsApp Bot")
     app.include_router(health.router)
     app.include_router(chat.router)
+    app.include_router(webhook.router)
     app.add_exception_handler(LLMError, _llm_unavailable)
     app.add_exception_handler(ConfigurationError, _misconfigured)
     return app

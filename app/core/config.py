@@ -50,13 +50,21 @@ class Settings(BaseSettings):
     waha_api_key: str = ""
     waha_session: str = "default"
     waha_webhook_url: str = "http://host.docker.internal:8000/webhook"
+    waha_webhook_hmac_key: str = ""
+    waha_timeout_seconds: float = 15.0
 
     # --- Bot behaviour ---
     session_ttl_seconds: int = 24 * 60 * 60
     history_limit: int = Field(default=20, description="Messages kept in short-term history")
     max_discovery_questions: int = 3
     debounce_seconds: float = 4.0
+    webhook_dedup_ttl_seconds: int = 3600
     allowed_numbers: str = Field(default="", description="Comma-separated; if set, reply only to these")
+
+    @property
+    def allowed_number_set(self) -> frozenset[str]:
+        entries = (e.strip().lstrip("+") for e in self.allowed_numbers.split(","))
+        return frozenset(e for e in entries if e)
 
     @property
     def redis_url(self) -> str:

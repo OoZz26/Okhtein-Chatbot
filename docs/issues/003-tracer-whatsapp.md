@@ -1,6 +1,6 @@
 # 003 — Tracer bullet over WhatsApp
 
-**Status:** ⚪ Todo · **Estimate:** 30 min
+**Status:** ✅ Done · **Estimate:** 30 min
 
 ## What to build
 
@@ -22,13 +22,13 @@ Behaviour:
 
 ## Acceptance criteria
 
-- [ ] Manual demo: message from your phone → bot reply on your phone
-- [ ] The same webhook event delivered twice produces exactly one reply (test with a fake gateway)
-- [ ] Own messages, group messages and status broadcasts produce no reply (tests)
-- [ ] Unauthenticated webhook calls are rejected (test)
-- [ ] The webhook responds in well under 200 ms regardless of LLM latency (test with a slow `FakeLLM`)
-- [ ] Restarting Docker does not require scanning the QR code again
-- [ ] The conversation service is unit-tested with a fake messaging gateway, no WAHA needed
+- [x] Manual demo: message from your phone → bot reply on your phone
+- [x] The same webhook event delivered twice produces exactly one reply (test with a fake gateway)
+- [x] Own messages, group messages and status broadcasts produce no reply (tests)
+- [x] Unauthenticated webhook calls are rejected (test)
+- [x] The webhook responds in well under 200 ms regardless of LLM latency (test with a slow `FakeLLM`)
+- [x] Restarting Docker does not require scanning the QR code again
+- [x] The conversation service is unit-tested with a fake messaging gateway, no WAHA needed
 
 ## Blocked by
 

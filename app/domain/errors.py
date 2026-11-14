@@ -11,3 +11,7 @@ class LLMError(OkhteinError):
 
 class ConfigurationError(OkhteinError):
     """A required setting is missing or invalid."""
+
+
+class MessagingError(OkhteinError):
+    """The messaging gateway (WhatsApp) could not deliver or acknowledge a message."""

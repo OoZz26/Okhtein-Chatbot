@@ -40,6 +40,7 @@ services:
       WHATSAPP_SWAGGER_PASSWORD: ${WAHA_API_KEY}
       WHATSAPP_HOOK_URL: ${WAHA_WEBHOOK_URL:-http://host.docker.internal:8000/webhook}
       WHATSAPP_HOOK_EVENTS: message
+      WHATSAPP_HOOK_HMAC_KEY: ${WAHA_WEBHOOK_HMAC_KEY:?set WAHA_WEBHOOK_HMAC_KEY in .env}
       WHATSAPP_RESTART_ALL_SESSIONS: "True"
       WHATSAPP_START_SESSION: ${WAHA_SESSION:-default}
     extra_hosts:

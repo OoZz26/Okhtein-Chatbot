@@ -23,3 +23,19 @@ class LLMProvider(Protocol):
         tools: Sequence[ToolSpec] = (),
         response_schema: dict[str, Any] | None = None,
     ) -> LLMResponse: ...
+
+
+class MessagingGateway(Protocol):
+    """Sends WhatsApp messages. The services never know which gateway sits behind it."""
+
+    async def send_text(self, chat_id: str, text: str) -> None: ...
+
+    async def mark_seen(self, chat_id: str) -> None: ...
+
+
+class IdempotencyStore(Protocol):
+    """Remembers which keys were already handled."""
+
+    async def claim(self, key: str) -> bool:
+        """Return True if this is the first time `key` is seen, False if it was already claimed."""
+        ...

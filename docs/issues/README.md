@@ -17,7 +17,7 @@ The bot is built as **vertical slices (tracer bullets)**: every issue cuts throu
 |---|---|---|---|---|
 | 001 | [Project foundation (prefactor)](001-project-setup.md) | — | 20m | ✅ Done |
 | 002 | [Tracer bullet: chat over HTTP returns a real product link](002-tracer-http-chat.md) | 001 | 35m | ✅ Done |
-| 003 | [Tracer bullet over WhatsApp](003-tracer-whatsapp.md) | 002 | 30m | ⚪ Todo |
+| 003 | [Tracer bullet over WhatsApp](003-tracer-whatsapp.md) | 002 | 30m | ✅ Done |
 | 004 | [Bot remembers the conversation](004-conversation-memory.md) | 002 | 30m | ⚪ Todo |
 | 005 | [Discovery & friendliness ("Nour")](005-discovery-friendliness.md) | 004 | 45m | ⚪ Todo |
 | 006 | [Smarter matching (hybrid retrieval)](006-hybrid-retrieval.md) | 002 | 30m | ⚪ Todo |
