@@ -1,0 +1,63 @@
+# Infrastructure only: the Python app runs natively during development.
+# Named volumes (not bind mounts) because the project lives on a Windows drive.
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-okhtein}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-okhtein}
+      POSTGRES_DB: ${POSTGRES_DB:-okhtein}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-okhtein} -d ${POSTGRES_DB:-okhtein}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  waha:
+    image: devlikeapro/waha:latest-2026.10.1
+    environment:
+      WAHA_API_KEY: ${WAHA_API_KEY:?set WAHA_API_KEY in .env}
+      WAHA_DASHBOARD_ENABLED: "true"
+      WAHA_DASHBOARD_USERNAME: admin
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_API_KEY}
+      WHATSAPP_SWAGGER_USERNAME: admin
+      WHATSAPP_SWAGGER_PASSWORD: ${WAHA_API_KEY}
+      WHATSAPP_HOOK_URL: ${WAHA_WEBHOOK_URL:-http://host.docker.internal:8000/webhook}
+      WHATSAPP_HOOK_EVENTS: message
+      WHATSAPP_RESTART_ALL_SESSIONS: "True"
+      WHATSAPP_START_SESSION: ${WAHA_SESSION:-default}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${WAHA_PORT:-3000}:3000"
+    volumes:
+      - waha_sessions:/app/.sessions
+      - waha_media:/app/.media
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf -H \"X-Api-Key: $$WAHA_API_KEY\" http://localhost:3000/api/sessions || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  postgres_data:
+  redis_data:
+  waha_sessions:
+  waha_media:
