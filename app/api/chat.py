@@ -20,6 +20,7 @@ class ChatResponse(BaseModel):
     reply: str
     product_handles: list[str]
     links: list[str]
+    stage: str
 
 
 def get_chat_service() -> ChatService:
@@ -30,4 +31,9 @@ def get_chat_service() -> ChatService:
 @router.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, service: Annotated[ChatService, Depends(get_chat_service)]) -> ChatResponse:
     result = await service.handle_message(body.chat_id, body.text)
-    return ChatResponse(reply=result.reply, product_handles=result.product_handles, links=result.links)
+    return ChatResponse(
+        reply=result.reply,
+        product_handles=result.product_handles,
+        links=result.links,
+        stage=result.stage.value,
+    )

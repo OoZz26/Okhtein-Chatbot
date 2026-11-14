@@ -14,14 +14,13 @@ from app.domain.agent.sales_agent import SalesAgent, load_system_prompt
 from app.domain.models import LLMResponse
 from app.domain.tools.base import ToolRegistry
 from app.main import create_app
-from app.services.chat_service import ChatService
 from app.services.incoming_message_service import IncomingMessageService
 from tests.fakes import (
     FakeGateway,
     FakeLLM,
     InMemoryIdempotency,
     InMemoryProducts,
-    make_memory,
+    make_chat_service,
     make_product,
 )
 
@@ -48,9 +47,7 @@ def wired_app(llm: FakeLLM) -> tuple[FastAPI, FakeGateway]:
     products = InMemoryProducts([make_product("black-clutch")])
     agent = SalesAgent(llm, ToolRegistry([]), products, load_system_prompt(), 3)
     gateway = FakeGateway()
-    service = IncomingMessageService(
-        ChatService(agent, make_memory().service, "https://eg.okhtein.com"), gateway, InMemoryIdempotency()
-    )
+    service = IncomingMessageService(make_chat_service(agent), gateway, InMemoryIdempotency())
     app = create_app()
     app.dependency_overrides[get_incoming_message_service] = lambda: service
     app.dependency_overrides[get_hmac_key] = lambda: KEY

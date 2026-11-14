@@ -13,7 +13,7 @@ from app.domain.tools.base import ToolRegistry
 from app.domain.tools.search_products import SearchProductsTool
 from app.main import create_app
 from app.services.chat_service import ChatService
-from tests.fakes import FakeLLM, InMemoryProducts, make_memory, make_product, tool_call
+from tests.fakes import FakeLLM, InMemoryProducts, make_chat_service, make_product, tool_call
 
 PRODUCTS = InMemoryProducts([make_product("black-clutch")])
 
@@ -26,7 +26,7 @@ class FailingLLM:
 def service_with(llm: object) -> ChatService:
     tool = SearchProductsTool(KeywordSearch(PRODUCTS), "EGP", result_limit=5)
     agent = SalesAgent(llm, ToolRegistry([tool]), PRODUCTS, load_system_prompt(), 3)  # type: ignore[arg-type]
-    return ChatService(agent, make_memory().service, "https://eg.okhtein.com")
+    return make_chat_service(agent)
 
 
 @pytest.fixture

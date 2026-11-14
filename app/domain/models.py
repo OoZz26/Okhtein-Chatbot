@@ -1,6 +1,7 @@
 """Domain data types. Plain frozen dataclasses: no framework, no I/O."""
 
 from dataclasses import dataclass, field
+from enum import StrEnum
 from typing import Any, Literal
 
 Role = Literal["system", "user", "assistant", "tool"]
@@ -51,12 +52,32 @@ class LLMResponse:
     tool_calls: tuple[ToolCall, ...] = ()
 
 
+class ConversationStage(StrEnum):
+    GREET = "greet"
+    DISCOVER = "discover"
+    RECOMMEND = "recommend"
+    REFINE = "refine"
+    CLOSE = "close"
+
+
 @dataclass
 class AgentReply:
     """Structured agent output. `message` is what the customer reads; links are built from handles."""
 
     message: str
     product_handles: list[str] = field(default_factory=list)
+    stage: ConversationStage | None = None
+    profile_updates: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class AgentContext:
+    """Per-turn facts the agent is told about the customer and the conversation so far."""
+
+    sender_name: str = ""
+    stage: ConversationStage = ConversationStage.GREET
+    profile_summary: str = ""
+    guidance: str = ""
 
 
 @dataclass(frozen=True)

@@ -7,8 +7,11 @@ from typing import Any
 
 from fakeredis import FakeAsyncRedis
 
+from app.domain.agent.sales_agent import SalesAgent
+from app.domain.discovery import DiscoveryPolicy, SessionState
 from app.domain.models import ChatMessage, LLMResponse, Product, ToolCall, ToolSpec
 from app.infra.cache.redis_short_term import RedisShortTermMemory
+from app.services.chat_service import ChatService
 from app.services.memory_service import MemoryService
 
 
@@ -136,3 +139,31 @@ def make_memory(history_limit: int = 20, ttl_seconds: int = 86400) -> MemoryRig:
         RedisShortTermMemory(redis, history_limit, ttl_seconds), store, history_limit, ttl_seconds, clock
     )
     return MemoryRig(service, redis, store, clock)
+
+
+class InMemorySessionStore:
+    def __init__(self) -> None:
+        self._states: dict[str, SessionState] = {}
+
+    async def load(self, chat_id: str) -> SessionState:
+        return self._states.get(chat_id, SessionState())
+
+    async def save(self, chat_id: str, state: SessionState) -> None:
+        self._states[chat_id] = state
+
+
+def make_chat_service(
+    agent: SalesAgent,
+    rig: MemoryRig | None = None,
+    sessions: InMemorySessionStore | None = None,
+    max_questions: int = 3,
+    store_url: str = "https://eg.okhtein.com",
+) -> ChatService:
+    """A real ChatService wired to fakes for every port."""
+    return ChatService(
+        agent,
+        (rig or make_memory()).service,
+        sessions or InMemorySessionStore(),
+        DiscoveryPolicy(max_questions),
+        store_url,
+    )

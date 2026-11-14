@@ -8,3 +8,4 @@ __pycache__/
 *.egg-info/
 loadtests/reports/
 *.log
+tests/evals/reports/

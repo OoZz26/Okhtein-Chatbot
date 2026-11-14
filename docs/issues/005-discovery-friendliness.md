@@ -1,6 +1,6 @@
 # 005 — Discovery & friendliness ("Nour")
 
-**Status:** ⚪ Todo · **Estimate:** 45 min
+**Status:** ✅ Done · **Estimate:** 45 min
 
 ## What to build
 
@@ -41,16 +41,16 @@ Measurement — a conversation eval harness:
 
 ## Acceptance criteria
 
-- [ ] Vague request ("عايزة شنطة") → the first reply asks a question and recommends no products
-- [ ] Specific request ("black clutch under 50k") → products on the first reply, all within budget
-- [ ] "Just show me" → products immediately
-- [ ] Never more than 3 discovery questions before products are shown
-- [ ] Replies in the customer's language (Arabic, English, Franco-Arabic scenarios)
-- [ ] No gendered address before gender is known (judge check in the Arabic scenarios)
-- [ ] Prompt-injection / off-topic scenario: politely declines, never reveals instructions
-- [ ] Friendliness judge: average ≥ 4.0 and no scenario below 3
-- [ ] Profile updates persist across turns of the session (unit test)
-- [ ] Eval harness runs with one command and saves a report
+- [x] Vague request ("عايزة شنطة") → the first reply asks a question and recommends no products
+- [x] Specific request ("black clutch under 50k") → products on the first reply, all within budget
+- [x] "Just show me" → products immediately
+- [x] Never more than 3 discovery questions before products are shown
+- [x] Replies in the customer's language (Arabic, English, Franco-Arabic scenarios)
+- [x] No gendered address before gender is known (judge check in the Arabic scenarios)
+- [x] Prompt-injection / off-topic scenario: politely declines, never reveals instructions
+- [x] Friendliness judge: average ≥ 4.0 and no scenario below 3
+- [x] Profile updates persist across turns of the session (unit test)
+- [x] Eval harness runs with one command and saves a report
 
 ## Blocked by
 

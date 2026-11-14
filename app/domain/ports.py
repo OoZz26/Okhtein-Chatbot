@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, Protocol
 
+from app.domain.discovery import SessionState
 from app.domain.models import ChatMessage, LLMResponse, Product, ToolSpec
 
 
@@ -72,3 +73,11 @@ class ConversationMemory(Protocol):
     async def record(self, chat_id: str, message: ChatMessage, display_name: str = "") -> None: ...
 
     async def is_new_session(self, chat_id: str) -> bool: ...
+
+
+class SessionStore(Protocol):
+    """Remembers the discovery state (stage, customer profile, questions asked) for a chat session."""
+
+    async def load(self, chat_id: str) -> SessionState: ...
+
+    async def save(self, chat_id: str, state: SessionState) -> None: ...

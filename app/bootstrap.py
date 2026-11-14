@@ -8,11 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.core.config import get_settings
 from app.domain.agent.sales_agent import SalesAgent, load_system_prompt
+from app.domain.discovery import DiscoveryPolicy
 from app.domain.errors import ConfigurationError
 from app.domain.retrieval.keyword import KeywordSearch
 from app.domain.tools.base import ToolRegistry
 from app.domain.tools.search_products import SearchProductsTool
 from app.infra.cache.redis_idempotency import RedisIdempotencyStore
+from app.infra.cache.redis_session_store import RedisSessionStore
 from app.infra.cache.redis_short_term import RedisShortTermMemory
 from app.infra.catalog.json_repository import JsonProductRepository
 from app.infra.db.conversation_store import PostgresConversationStore
@@ -49,7 +51,7 @@ def build_memory_service() -> MemoryService:
 
 
 @lru_cache
-def build_chat_service() -> ChatService:
+def build_agent() -> SalesAgent:
     settings = get_settings()
     if not settings.openai_api_key:
         raise ConfigurationError("OPENAI_API_KEY is not set; add it to your .env file")
@@ -57,14 +59,25 @@ def build_chat_service() -> ChatService:
     search_tool = SearchProductsTool(
         KeywordSearch(products), settings.store_currency, settings.search_result_limit
     )
-    agent = SalesAgent(
+    return SalesAgent(
         llm=OpenAIProvider(settings.openai_api_key, settings.openai_model, settings.llm_timeout_seconds),
         tools=ToolRegistry([search_tool]),
         products=products,
-        system_prompt=load_system_prompt(),
+        system_prompt=load_system_prompt(settings.prompt_version),
         max_tool_rounds=settings.max_tool_rounds,
     )
-    return ChatService(agent, build_memory_service(), settings.store_url)
+
+
+@lru_cache
+def build_chat_service() -> ChatService:
+    settings = get_settings()
+    return ChatService(
+        agent=build_agent(),
+        memory=build_memory_service(),
+        sessions=RedisSessionStore(_redis(), settings.session_ttl_seconds),
+        policy=DiscoveryPolicy(settings.max_discovery_questions),
+        store_url=settings.store_url,
+    )
 
 
 @lru_cache

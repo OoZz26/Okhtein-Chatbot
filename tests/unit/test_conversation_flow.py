@@ -6,7 +6,14 @@ from app.domain.agent.sales_agent import SalesAgent, load_system_prompt
 from app.domain.models import LLMResponse
 from app.domain.tools.base import ToolRegistry
 from app.services.chat_service import ChatService
-from tests.fakes import FakeLLM, InMemoryProducts, MemoryRig, make_memory, make_product
+from tests.fakes import (
+    FakeLLM,
+    InMemoryProducts,
+    MemoryRig,
+    make_chat_service,
+    make_memory,
+    make_product,
+)
 
 CHAT = "201001234567@c.us"
 
@@ -18,7 +25,7 @@ def reply(message: str, handles: list[str] | None = None) -> LLMResponse:
 def build(llm: FakeLLM, rig: MemoryRig) -> ChatService:
     products = InMemoryProducts([make_product("black-clutch")])
     agent = SalesAgent(llm, ToolRegistry([]), products, load_system_prompt(), max_tool_rounds=3)
-    return ChatService(agent, rig.service, "https://eg.okhtein.com")
+    return make_chat_service(agent, rig)
 
 
 async def test_second_message_sees_the_first_exchange() -> None:
