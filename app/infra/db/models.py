@@ -38,3 +38,17 @@ class FollowUpRow(Base):
     reason: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     resolved: Mapped[bool] = mapped_column(default=False)
+
+
+class HandoffRow(Base):
+    """One row per handoff episode. The open one (released_at is NULL) is the chat's current state."""
+
+    __tablename__ = "handoffs"
+    __table_args__ = (Index("ix_handoffs_chat_id_id", "chat_id", "id"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    chat_id: Mapped[str] = mapped_column(String(64))
+    reason: Mapped[str] = mapped_column(String(255))
+    summary: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

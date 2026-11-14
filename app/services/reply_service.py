@@ -28,14 +28,19 @@ class ReplyService:
     async def reply(self, chat_id: str, text: str, sender_name: str = "") -> None:
         """Typing shows while the answer is generated. Expected failures are logged, never raised:
         this runs in a background task where nobody could catch them."""
+        typing = False
         try:
-            await self._gateway.start_typing(chat_id)
+            if not await self._chat.is_handed_off(chat_id):  # a person owns the chat: no typing, no reply
+                await self._gateway.start_typing(chat_id)
+                typing = True
             result = await self._chat.handle_message(chat_id, text, sender_name)
-            await self._sender.send(chat_id, result.message, self._cards.build(result.product_handles))
+            if not result.silent:
+                await self._sender.send(chat_id, result.message, self._cards.build(result.product_handles))
         except OkhteinError:
             logger.exception("Could not answer the message from %s", mask_chat_id(chat_id))
         finally:
-            await self._stop_typing(chat_id)
+            if typing:
+                await self._stop_typing(chat_id)
 
     async def _stop_typing(self, chat_id: str) -> None:
         try:

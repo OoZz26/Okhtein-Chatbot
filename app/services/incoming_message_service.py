@@ -7,6 +7,7 @@ from app.domain.errors import OkhteinError
 from app.domain.models import IncomingMessage
 from app.domain.ports import IdempotencyStore, MessagingGateway
 from app.services.debouncer import Debouncer
+from app.services.handoff_service import HandoffService
 
 logger = logging.getLogger(__name__)
 
@@ -22,11 +23,13 @@ class IncomingMessageService:
         gateway: MessagingGateway,
         idempotency: IdempotencyStore,
         debouncer: Debouncer,
+        handoffs: HandoffService,
         allowed_numbers: frozenset[str] = frozenset(),
     ) -> None:
         self._gateway = gateway
         self._idempotency = idempotency
         self._debouncer = debouncer
+        self._handoffs = handoffs
         self._allowed_numbers = allowed_numbers
 
     async def handle(self, message: IncomingMessage) -> None:
@@ -39,21 +42,28 @@ class IncomingMessageService:
             logger.info("Ignored a duplicate delivery of a message")
             return
         try:
+            if message.from_me:
+                await self._handoffs.staff_took_over(message.chat_id)  # a person is answering: step back
+                return
             await self._gateway.mark_seen(message.chat_id)
             if message.has_media or not message.text.strip():
-                await self._gateway.send_text(message.chat_id, TEXT_ONLY_REPLY)
+                await self._answer_without_reading(message)
             else:
                 await self._debouncer.submit(message.chat_id, message.text, message.sender_name)
         except OkhteinError:
             logger.exception("Could not handle the message from %s", mask_chat_id(message.chat_id))
 
+    async def _answer_without_reading(self, message: IncomingMessage) -> None:
+        if not await self._handoffs.is_handed_off(message.chat_id):
+            await self._gateway.send_text(message.chat_id, TEXT_ONLY_REPLY)
+
     def _ignore_reason(self, message: IncomingMessage) -> str | None:
-        if message.from_me:
-            return "our own message"
         if message.is_group:
             return "group or channel"
         if message.is_status:
             return "status broadcast"
+        if message.from_me and not message.from_phone:
+            return "our own message"  # sent through the API by the bot itself
         if self._allowed_numbers and message.chat_id.split("@")[0] not in self._allowed_numbers:
             return "sender not in the allowed list"
         return None

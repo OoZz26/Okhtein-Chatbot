@@ -31,3 +31,7 @@ class AllProvidersFailedError(LLMError):
     def __init__(self, failures: list[str]) -> None:
         super().__init__("All LLM providers failed: " + "; ".join(failures))
         self.failures = failures
+
+
+class InvalidTransitionError(OkhteinError):
+    """A state change that the state machine does not allow (for example releasing a bot-active chat)."""

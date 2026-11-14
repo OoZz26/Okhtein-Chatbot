@@ -29,6 +29,8 @@ REPLY_SCHEMA: dict[str, Any] = {
         "message": {"type": "string"},
         "product_handles": {"type": "array", "items": {"type": "string"}},
         "stage": {"type": "string", "enum": [stage.value for stage in ConversationStage]},
+        "handoff_reason": {"type": "string"},
+        "handoff_summary": {"type": "string"},
         "profile_updates": {
             "type": "object",
             "properties": {slot: {"type": "string"} for slot in PROFILE_SLOT_NAMES},
@@ -36,7 +38,14 @@ REPLY_SCHEMA: dict[str, Any] = {
             "additionalProperties": False,
         },
     },
-    "required": ["message", "product_handles", "stage", "profile_updates"],
+    "required": [
+        "message",
+        "product_handles",
+        "stage",
+        "profile_updates",
+        "handoff_reason",
+        "handoff_summary",
+    ],
     "additionalProperties": False,
 }
 
@@ -129,6 +138,8 @@ class SalesAgent:
             product_handles=self._known_handles(data.get("product_handles")),
             stage=self._parse_stage(data.get("stage")),
             profile_updates=self._parse_profile_updates(data.get("profile_updates")),
+            handoff_reason=str(data.get("handoff_reason") or "").strip(),
+            handoff_summary=str(data.get("handoff_summary") or "").strip(),
         )
 
     def _known_handles(self, handles: object) -> list[str]:

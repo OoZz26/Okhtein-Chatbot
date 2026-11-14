@@ -70,6 +70,9 @@ class Settings(BaseSettings):
     typing_seconds_per_char: float = 0.03
     typing_max_delay_seconds: float = 3.0
     send_rate_limit_per_minute: int = 20
+    handoff_timeout_hours: float = 12.0
+    staff_phone: str = Field(default="", description="WhatsApp number that gets handoff alerts")
+    admin_api_key: str = ""
     allowed_numbers: str = Field(default="", description="Comma-separated; if set, reply only to these")
 
     @property

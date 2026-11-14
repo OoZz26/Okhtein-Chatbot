@@ -11,10 +11,12 @@ from fakeredis import FakeAsyncRedis
 from app.domain.agent.sales_agent import SalesAgent
 from app.domain.discovery import DiscoveryPolicy, SessionState
 from app.domain.errors import MessagingError
+from app.domain.handoff import HandoffState
 from app.domain.models import ChatMessage, LLMResponse, Product, ToolCall, ToolSpec
 from app.infra.cache.redis_short_term import RedisShortTermMemory
 from app.services.chat_service import ChatService
 from app.services.debouncer import Debouncer
+from app.services.handoff_service import HandoffService
 from app.services.incoming_message_service import IncomingMessageService
 from app.services.memory_service import MemoryService
 from app.services.product_cards import ProductCardFactory
@@ -190,6 +192,7 @@ def make_chat_service(
     max_questions: int = 3,
     store_url: str = "https://eg.okhtein.com",
     follow_ups: InMemoryFollowUps | None = None,
+    handoffs: HandoffService | None = None,
 ) -> ChatService:
     """A real ChatService wired to fakes for every port."""
     return ChatService(
@@ -198,6 +201,7 @@ def make_chat_service(
         sessions or InMemorySessionStore(),
         DiscoveryPolicy(max_questions),
         follow_ups or InMemoryFollowUps(),
+        handoffs or make_handoffs().service,
         store_url,
     )
 
@@ -276,6 +280,7 @@ def make_incoming(
     allowed: frozenset[str] = frozenset(),
     idempotency: InMemoryIdempotency | None = None,
     products: Sequence[Product] = (),
+    handoffs: HandoffService | None = None,
 ) -> tuple[IncomingMessageService, Debouncer, FakeGateway]:
     """The whole inbound pipeline over fakes. Call `await debouncer.wait_idle()` to let replies finish."""
     gateway = gateway or FakeGateway()
@@ -285,5 +290,39 @@ def make_incoming(
     cards = ProductCardFactory(InMemoryProducts(products), "https://eg.okhtein.com", "EGP")
     replies = ReplyService(chat_service, gateway, sender, cards)
     debouncer = Debouncer(InMemoryBuffer(), InMemoryLock(), replies.reply, 0.0, 1.0, sleep=instant)
-    incoming = IncomingMessageService(gateway, idempotency or InMemoryIdempotency(), debouncer, allowed)
+    incoming = IncomingMessageService(
+        gateway, idempotency or InMemoryIdempotency(), debouncer, handoffs or make_handoffs().service, allowed
+    )
     return incoming, debouncer, gateway
+
+
+class InMemoryHandoffStore:
+    def __init__(self) -> None:
+        self.states: dict[str, HandoffState] = {}
+
+    async def get(self, chat_id: str) -> HandoffState:
+        return self.states.get(chat_id, HandoffState())
+
+    async def save(self, chat_id: str, state: HandoffState) -> None:
+        self.states[chat_id] = state
+
+
+class RecordingNotifier:
+    def __init__(self) -> None:
+        self.notified: list[tuple[str, HandoffState]] = []
+
+    async def notify(self, chat_id: str, state: HandoffState) -> None:
+        self.notified.append((chat_id, state))
+
+
+@dataclass
+class HandoffRig:
+    service: HandoffService
+    store: InMemoryHandoffStore
+    notifier: RecordingNotifier
+    clock: FakeClock
+
+
+def make_handoffs(timeout_hours: float = 12.0) -> HandoffRig:
+    store, notifier, clock = InMemoryHandoffStore(), RecordingNotifier(), FakeClock()
+    return HandoffRig(HandoffService(store, notifier, timeout_hours, clock), store, notifier, clock)

@@ -69,6 +69,12 @@ class AgentReply:
     product_handles: list[str] = field(default_factory=list)
     stage: ConversationStage | None = None
     profile_updates: dict[str, str] = field(default_factory=dict)
+    handoff_reason: str = ""  # non-empty: a person must take over, and why
+    handoff_summary: str = ""  # 1-3 lines for the team
+
+    @property
+    def wants_handoff(self) -> bool:
+        return bool(self.handoff_reason.strip())
 
 
 @dataclass(frozen=True)
@@ -93,6 +99,7 @@ class IncomingMessage:
     is_group: bool = False
     is_status: bool = False
     has_media: bool = False
+    from_phone: bool = False  # sent by a person on the business phone (not by our own API calls)
 
 
 @dataclass(frozen=True)

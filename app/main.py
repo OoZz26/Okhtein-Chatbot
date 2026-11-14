@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app import bootstrap
-from app.api import chat, health, webhook
+from app.api import admin, chat, health, webhook
 from app.core.logging import configure_logging
 from app.domain.errors import ConfigurationError, LLMError
 
@@ -42,6 +42,7 @@ def create_app(startup: Hook | None = None, shutdown: Hook | None = None) -> Fas
     app.include_router(health.router)
     app.include_router(chat.router)
     app.include_router(webhook.router)
+    app.include_router(admin.router)
     app.add_exception_handler(LLMError, _llm_unavailable)
     app.add_exception_handler(ConfigurationError, _misconfigured)
     return app

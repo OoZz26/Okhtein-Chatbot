@@ -28,7 +28,7 @@ from app.infra.llm.openai_provider import OpenAICompatibleProvider
 from app.services.chat_service import ChatService
 from tests.evals.checks import BotTurn, CheckResult, run_checks
 from tests.evals.judge import DIMENSIONS, Judge, ReplyScore
-from tests.fakes import InMemoryFollowUps, make_memory
+from tests.fakes import InMemoryFollowUps, make_handoffs, make_memory
 
 EVALS_DIR = Path(__file__).parent
 REPORTS_DIR = EVALS_DIR / "reports"
@@ -61,7 +61,15 @@ def build_service(settings: Settings) -> ChatService:
     rig = make_memory(settings.history_limit, settings.session_ttl_seconds)
     sessions = RedisSessionStore(FakeAsyncRedis(decode_responses=True), settings.session_ttl_seconds)
     policy = DiscoveryPolicy(settings.max_discovery_questions)
-    return ChatService(build_agent(), rig.service, sessions, policy, InMemoryFollowUps(), settings.store_url)
+    return ChatService(
+        build_agent(),
+        rig.service,
+        sessions,
+        policy,
+        InMemoryFollowUps(),
+        make_handoffs().service,
+        settings.store_url,
+    )
 
 
 async def run_scenario(
@@ -71,7 +79,7 @@ async def run_scenario(
     turns: list[BotTurn] = []
     for customer_text in scenario["turns"]:
         result = await service.handle_message(chat_id, customer_text, scenario.get("sender_name", ""))
-        turns.append(BotTurn(customer_text, result.reply, result.product_handles))
+        turns.append(BotTurn(customer_text, result.reply, result.product_handles, result.handed_off))
     checks = run_checks(turns, scenario["checks"], lambda handle: prices[handle])
     scores = await judge.score(scenario["description"], turns)
     return ScenarioResult(scenario["id"], scenario["description"], turns, checks, scores)

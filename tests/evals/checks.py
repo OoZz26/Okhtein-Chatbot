@@ -42,6 +42,7 @@ class BotTurn:
     customer: str
     reply: str
     handles: list[str]
+    handed_off: bool = False
 
 
 @dataclass(frozen=True)
@@ -150,6 +151,14 @@ def _mentions_team(turns: list[BotTurn], _: Any, __: Callable[[str], float]) -> 
     return CheckResult("offers_a_team_member", any(TEAM.search(t.reply) for t in turns))
 
 
+def _triggers_handoff(turns: list[BotTurn], _: Any, __: Callable[[str], float]) -> CheckResult:
+    return CheckResult("hands_off_to_a_person", any(t.handed_off for t in turns))
+
+
+def _no_handoff(turns: list[BotTurn], _: Any, __: Callable[[str], float]) -> CheckResult:
+    return CheckResult("does_not_hand_off", not any(t.handed_off for t in turns))
+
+
 def _no_products(turns: list[BotTurn], _: Any, __: Callable[[str], float]) -> CheckResult:
     shown = [h for t in turns for h in t.handles]
     return CheckResult("no_products_shown", not shown, f"handles={shown}")
@@ -170,6 +179,8 @@ _CHECKERS: dict[str, Callable[[list[BotTurn], Any, Callable[[str], float]], Chec
     "no_gendered_address": _no_gendered_address,
     "no_instruction_leak": _no_instruction_leak,
     "no_products": _no_products,
+    "triggers_handoff": _triggers_handoff,
+    "no_handoff": _no_handoff,
     "contains_any": _contains_any,
     "no_money_amounts": _no_money_amounts,
     "mentions_team": _mentions_team,

@@ -10,6 +10,7 @@ from app.domain.discovery import DiscoveryPolicy
 from app.domain.errors import LLMError
 from app.domain.models import AgentContext, ChatMessage, ConversationStage
 from app.domain.ports import ConversationMemory, FollowUpStore, SessionStore
+from app.services.handoff_service import HandoffService
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,8 @@ class ChatResult:
     stage: ConversationStage
     degraded: bool = False
     message: str = ""  # the text WITHOUT product links, for channels that send product cards
+    silent: bool = False  # a person owns this chat: the message was stored, nothing should be sent
+    handed_off: bool = False  # this very reply handed the chat to a person
 
 
 class ChatService:
@@ -39,6 +42,7 @@ class ChatService:
         sessions: SessionStore,
         policy: DiscoveryPolicy,
         follow_ups: FollowUpStore,
+        handoffs: HandoffService,
         store_url: str,
     ) -> None:
         self._agent = agent
@@ -46,13 +50,20 @@ class ChatService:
         self._sessions = sessions
         self._policy = policy
         self._follow_ups = follow_ups
+        self._handoffs = handoffs
         self._store_url = store_url.rstrip("/")
+
+    async def is_handed_off(self, chat_id: str) -> bool:
+        return await self._handoffs.is_handed_off(chat_id)
 
     async def handle_message(self, chat_id: str, text: str, sender_name: str = "") -> ChatResult:
         started = time.perf_counter()
         history = await self._memory.context(chat_id)
         state = await self._sessions.load(chat_id)
         await self._memory.record(chat_id, ChatMessage("user", text), sender_name)
+        if await self._handoffs.is_handed_off(chat_id):
+            logger.info("chat_reply outcome=silent reason=handed_off")
+            return ChatResult("", [], [], state.stage, message="", silent=True)
         context = AgentContext(
             sender_name=sender_name,
             stage=state.stage,
@@ -68,6 +79,11 @@ class ChatService:
         links = [self.product_link(handle) for handle in agent_reply.product_handles]
         reply = "\n\n".join([agent_reply.message, *links]) if links else agent_reply.message
         await self._memory.record(chat_id, ChatMessage("assistant", reply))
+        handed_off = False
+        if agent_reply.wants_handoff:
+            handed_off = await self._handoffs.hand_off(
+                chat_id, agent_reply.handoff_reason, agent_reply.handoff_summary
+            )
         logger.info(
             "chat_reply outcome=ok stage=%s products=%d latency_ms=%d",
             new_state.stage.value,
@@ -75,7 +91,12 @@ class ChatService:
             self._elapsed_ms(started),
         )
         return ChatResult(
-            reply, agent_reply.product_handles, links, new_state.stage, message=agent_reply.message
+            reply,
+            agent_reply.product_handles,
+            links,
+            new_state.stage,
+            message=agent_reply.message,
+            handed_off=handed_off,
         )
 
     async def _degrade(

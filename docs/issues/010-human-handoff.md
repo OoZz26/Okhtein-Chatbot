@@ -1,6 +1,6 @@
 # 010 — Human handoff
 
-**Status:** ⚪ Todo · **Estimate:** 20 min
+**Status:** ✅ Done (code) · ⏳ manual phone check pending, see docs/morning-checklist.md · **Estimate:** 20 min
 
 ## What to build
 
@@ -22,14 +22,19 @@ BOT_ACTIVE ──(handoff)──► HANDED_OFF ──(release / timeout)──�
 
 ## Acceptance criteria
 
-- [ ] "Where is my order?" and an angry message trigger handoff (eval scenarios)
-- [ ] After handoff the bot sends nothing, but messages are still stored (test)
-- [ ] A manual staff reply from the business phone pauses the bot for that chat (test)
-- [ ] Release (admin endpoint or timeout) makes the bot answer again (test)
-- [ ] Handoff reason and summary are stored and included in the staff notification
-- [ ] State transitions are explicit and invalid transitions are rejected (unit test)
+- [x] "Where is my order?" and an angry message trigger handoff (eval scenarios)
+- [x] After handoff the bot sends nothing, but messages are still stored (test)
+- [x] A manual staff reply from the business phone pauses the bot for that chat (test)
+- [x] Release (admin endpoint or timeout) makes the bot answer again (test)
+- [x] Handoff reason and summary are stored and included in the staff notification
+- [x] State transitions are explicit and invalid transitions are rejected (unit test)
 
 ## Blocked by
 
 - 003 — Tracer bullet over WhatsApp
 - 004 — Bot remembers the conversation
+
+## Notes
+
+- The agent hands off through two extra fields in its structured reply (`handoff_reason`, `handoff_summary`) instead of a tool: tools here are stateless and shared across chats, so a tool would need hidden per-turn state. Same behaviour, one fewer LLM round trip.
+- Staff replies from the business phone are detected with WAHA's `source` field (`app` = typed on the phone, `api` = sent by our own API calls) on `message.any` events. ⏳ needs manual check on the real phone (see the morning checklist).

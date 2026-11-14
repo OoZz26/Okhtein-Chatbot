@@ -24,7 +24,7 @@ The bot is built as **vertical slices (tracer bullets)**: every issue cuts throu
 | 007 | [Store FAQ answers](007-store-faq.md) | 002 | 10m | ✅ Done |
 | 008 | [Human-like WhatsApp experience](008-human-like-whatsapp.md) | 003, 004 | 30m | ✅ Done ⏳ |
 | 009 | [Resilience: LLM fallback & graceful failure](009-resilience.md) | 002 | 20m | 🔵 In progress |
-| 010 | [Human handoff](010-human-handoff.md) | 003, 004 | 20m | ⚪ Todo |
+| 010 | [Human handoff](010-human-handoff.md) | 003, 004 | 20m | ✅ Done ⏳ |
 | 011 | [Returning customer](011-returning-customer.md) | 005 | 15m | ⚪ Todo |
 | 012 | [Load test](012-load-test.md) | 008 | 20m | ✅ Done ⏳ |
 | 013 | [README & demo](013-readme-demo.md) | all | 10m | ⚪ Todo |

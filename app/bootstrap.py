@@ -13,10 +13,12 @@ from app.domain.agent.sales_agent import SalesAgent, load_system_prompt
 from app.domain.discovery import DiscoveryPolicy
 from app.domain.errors import ConfigurationError
 from app.domain.llm.fallback_chain import FallbackLLMProvider, ProviderSlot
+from app.domain.ports import StaffNotifier
 from app.domain.retrieval.keyword import KeywordSearch
 from app.domain.tools.base import ToolRegistry
 from app.domain.tools.search_products import SearchProductsTool
 from app.infra.cache.redis_buffer import RedisMessageBuffer
+from app.infra.cache.redis_handoff_cache import CachedHandoffStore
 from app.infra.cache.redis_idempotency import RedisIdempotencyStore
 from app.infra.cache.redis_lock import RedisChatLock
 from app.infra.cache.redis_rate_limiter import RedisRateLimiter
@@ -26,11 +28,18 @@ from app.infra.catalog.file_store_info import FileStoreInfoSource
 from app.infra.catalog.json_repository import JsonProductRepository
 from app.infra.db.conversation_store import PostgresConversationStore
 from app.infra.db.follow_up_store import PostgresFollowUpStore
+from app.infra.db.handoff_store import PostgresHandoffStore
 from app.infra.db.session import create_engine, create_session_factory, create_tables
 from app.infra.llm.openai_provider import OpenAICompatibleProvider
+from app.infra.whatsapp.staff_notifier import (
+    CompositeStaffNotifier,
+    LogStaffNotifier,
+    WhatsAppStaffNotifier,
+)
 from app.infra.whatsapp.waha_gateway import WahaGateway
 from app.services.chat_service import ChatService
 from app.services.debouncer import Debouncer
+from app.services.handoff_service import HandoffService
 from app.services.incoming_message_service import IncomingMessageService
 from app.services.memory_service import MemoryService
 from app.services.product_cards import ProductCardFactory
@@ -125,6 +134,28 @@ def build_agent() -> SalesAgent:
 
 
 @lru_cache
+def _gateway() -> WahaGateway:
+    settings = get_settings()
+    return WahaGateway(
+        settings.waha_url, settings.waha_api_key, settings.waha_session, settings.waha_timeout_seconds
+    )
+
+
+@lru_cache
+def build_handoff_service() -> HandoffService:
+    settings = get_settings()
+    store = CachedHandoffStore(
+        PostgresHandoffStore(create_session_factory(_engine())),
+        _redis(),
+        ttl_seconds=int(settings.handoff_timeout_hours * 3600),
+    )
+    notifiers: list[StaffNotifier] = [LogStaffNotifier()]
+    if settings.staff_phone:  # only ever the one configured number
+        notifiers.append(WhatsAppStaffNotifier(_gateway(), f"{settings.staff_phone.lstrip('+')}@c.us"))
+    return HandoffService(store, CompositeStaffNotifier(notifiers), settings.handoff_timeout_hours)
+
+
+@lru_cache
 def build_chat_service() -> ChatService:
     settings = get_settings()
     return ChatService(
@@ -133,6 +164,7 @@ def build_chat_service() -> ChatService:
         sessions=RedisSessionStore(_redis(), settings.session_ttl_seconds),
         policy=DiscoveryPolicy(settings.max_discovery_questions),
         follow_ups=PostgresFollowUpStore(create_session_factory(_engine())),
+        handoffs=build_handoff_service(),
         store_url=settings.store_url,
     )
 
@@ -140,9 +172,7 @@ def build_chat_service() -> ChatService:
 @lru_cache
 def build_incoming_message_service() -> IncomingMessageService:
     settings = get_settings()
-    gateway = WahaGateway(
-        settings.waha_url, settings.waha_api_key, settings.waha_session, settings.waha_timeout_seconds
-    )
+    gateway = _gateway()
     sender = ReplySender(
         gateway,
         RedisRateLimiter(_redis(), settings.send_rate_limit_per_minute),
@@ -163,6 +193,7 @@ def build_incoming_message_service() -> IncomingMessageService:
         gateway=gateway,
         idempotency=RedisIdempotencyStore(_redis(), settings.webhook_dedup_ttl_seconds),
         debouncer=debouncer,
+        handoffs=build_handoff_service(),
         allowed_numbers=settings.allowed_number_set,
     )
 

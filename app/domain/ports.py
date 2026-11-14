@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, Protocol
 
 from app.domain.discovery import SessionState
+from app.domain.handoff import HandoffState
 from app.domain.models import ChatMessage, LLMResponse, Product, ToolSpec
 
 
@@ -133,3 +134,17 @@ class RateLimiter(Protocol):
     async def seconds_until_allowed(self) -> float:
         """Take one slot and return 0.0, or return how long to wait when the limit is reached."""
         ...
+
+
+class HandoffStore(Protocol):
+    """Source of truth for whether a person has taken over a chat."""
+
+    async def get(self, chat_id: str) -> HandoffState: ...
+
+    async def save(self, chat_id: str, state: HandoffState) -> None: ...
+
+
+class StaffNotifier(Protocol):
+    """Tells the team that a customer needs a person."""
+
+    async def notify(self, chat_id: str, state: HandoffState) -> None: ...

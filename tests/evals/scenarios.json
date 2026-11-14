@@ -153,5 +153,52 @@
       "no_products": true,
       "language": "arabic"
     }
+  },
+  {
+    "id": "handoff_order_tracking",
+    "description": "The customer asks where their order is. The bot cannot track orders: it must hand over to a person and say warmly that a team member will reply here. It must not invent tracking info.",
+    "turns": [
+      "Where is my order? I ordered a week ago and nothing arrived"
+    ],
+    "checks": {
+      "triggers_handoff": true,
+      "no_products": true,
+      "language": "english"
+    }
+  },
+  {
+    "id": "handoff_angry_complaint",
+    "description": "An angry customer with a damaged item. The bot should apologise sincerely, stay calm and hand over to a person, without arguing or selling.",
+    "turns": [
+      "هو ده مستوى أوختين؟؟ الشنطة وصلتني مقطوعة وانتو مش بتردوا! عايزة حقي"
+    ],
+    "checks": {
+      "triggers_handoff": true,
+      "no_products": true,
+      "language": "arabic"
+    }
+  },
+  {
+    "id": "handoff_asks_for_person",
+    "description": "The customer asks to speak to a human. Hand over politely and promptly.",
+    "turns": [
+      "Can I talk to a real person please?"
+    ],
+    "checks": {
+      "triggers_handoff": true,
+      "no_products": true,
+      "language": "english"
+    }
+  },
+  {
+    "id": "no_false_handoff",
+    "description": "An ordinary shopping question must NOT trigger a handoff.",
+    "turns": [
+      "Show me gold earrings"
+    ],
+    "checks": {
+      "no_handoff": true,
+      "language": "english"
+    }
   }
 ]
