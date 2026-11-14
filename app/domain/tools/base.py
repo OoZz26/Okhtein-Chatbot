@@ -16,7 +16,7 @@ class Tool(Protocol):
     description: str
     parameters: dict[str, Any]
 
-    def run(self, arguments: dict[str, Any]) -> dict[str, Any]: ...
+    async def run(self, arguments: dict[str, Any]) -> dict[str, Any]: ...
 
 
 class ToolRegistry:
@@ -26,14 +26,14 @@ class ToolRegistry:
     def specs(self) -> list[ToolSpec]:
         return [ToolSpec(t.name, t.description, t.parameters) for t in self._tools.values()]
 
-    def run(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    async def run(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Run a tool. Problems are returned to the model as an error result, never raised."""
         tool = self._tools.get(name)
         if tool is None:
             logger.warning("Model called unknown tool %r", name)
             return {"error": f"unknown tool {name}"}
         try:
-            return tool.run(arguments)
+            return await tool.run(arguments)
         except (TypeError, ValueError) as exc:
             logger.warning("Tool %s got bad arguments %r: %s", name, arguments, exc)
             return {"error": f"invalid arguments: {exc}"}

@@ -90,7 +90,7 @@ class SalesAgent:
                 return self._validate(response.content)
             messages.append(ChatMessage("assistant", response.content, response.tool_calls))
             for call in response.tool_calls:
-                result = self._tools.run(call.name, call.arguments)
+                result = await self._tools.run(call.name, call.arguments)
                 messages.append(
                     ChatMessage("tool", json.dumps(result, ensure_ascii=False), tool_call_id=call.id)
                 )

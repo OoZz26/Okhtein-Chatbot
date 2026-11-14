@@ -10,9 +10,21 @@ from fakeredis import FakeAsyncRedis
 
 from app.domain.agent.sales_agent import SalesAgent
 from app.domain.discovery import DiscoveryPolicy, SessionState
-from app.domain.errors import MessagingError
+from app.domain.errors import MessagingError, RetrievalError
 from app.domain.handoff import HandoffState
-from app.domain.models import ChatMessage, LLMResponse, Product, ToolCall, ToolSpec
+from app.domain.models import (
+    ChatMessage,
+    IndexedProduct,
+    LLMResponse,
+    Product,
+    ScoredHandle,
+    ToolCall,
+    ToolSpec,
+    VectorFilters,
+)
+from app.domain.retrieval.keyword import KeywordSearch
+from app.domain.retrieval.retrievers import KeywordRetriever
+from app.domain.tools.search_products import SearchProductsTool
 from app.infra.cache.redis_short_term import RedisShortTermMemory
 from app.services.chat_service import ChatService
 from app.services.debouncer import Debouncer
@@ -326,3 +338,63 @@ class HandoffRig:
 def make_handoffs(timeout_hours: float = 12.0) -> HandoffRig:
     store, notifier, clock = InMemoryHandoffStore(), RecordingNotifier(), FakeClock()
     return HandoffRig(HandoffService(store, notifier, timeout_hours, clock), store, notifier, clock)
+
+
+def make_search_tool(products: InMemoryProducts, limit: int = 5) -> SearchProductsTool:
+    """The search tool over plain keyword retrieval: no embeddings, no database."""
+    search = KeywordSearch(products)
+    return SearchProductsTool(KeywordRetriever(search), search.categories(), "EGP", limit)
+
+
+class FakeEmbedder:
+    """Deterministic 'embeddings': hashed bag of words, so shared words mean similar vectors. No network."""
+
+    DIMENSIONS = 64
+
+    def __init__(self, fail: bool = False) -> None:
+        self.fail = fail
+        self.embedded_texts: list[str] = []
+
+    async def embed(self, texts: Sequence[str]) -> list[list[float]]:
+        if self.fail:
+            raise RetrievalError("embedding service is down")
+        self.embedded_texts.extend(texts)
+        return [self._vector(text) for text in texts]
+
+    def _vector(self, text: str) -> list[float]:
+        vector = [0.0] * self.DIMENSIONS
+        for word in text.lower().split():
+            vector[sum(map(ord, word)) % self.DIMENSIONS] += 1.0
+        norm = sum(v * v for v in vector) ** 0.5 or 1.0
+        return [v / norm for v in vector]
+
+
+class InMemoryVectorIndex:
+    """A brute-force vector index with the same filters as the pgvector one."""
+
+    def __init__(self, fail: bool = False) -> None:
+        self.items: dict[str, IndexedProduct] = {}
+        self.fail = fail
+
+    async def upsert(self, items: Sequence[IndexedProduct]) -> None:
+        for item in items:
+            self.items[item.handle] = item
+
+    async def search(self, vector: Sequence[float], filters: VectorFilters, k: int) -> list[ScoredHandle]:
+        if self.fail:
+            raise RetrievalError("vector index is down")
+        hits = [
+            ScoredHandle(item.handle, sum(a * b for a, b in zip(vector, item.embedding, strict=True)))
+            for item in self.items.values()
+            if (item.available or not filters.in_stock_only)
+            and (filters.max_price is None or item.price_min <= filters.max_price)
+            and (not filters.category or filters.category.lower() in item.category.lower())
+        ]
+        return sorted(hits, key=lambda hit: hit.score, reverse=True)[:k]
+
+    async def indexed_hashes(self) -> dict[str, tuple[str, str]]:
+        return {h: (item.content_hash, item.embedding_model) for h, item in self.items.items()}
+
+    async def delete(self, handles: Sequence[str]) -> None:
+        for handle in handles:
+            self.items.pop(handle, None)

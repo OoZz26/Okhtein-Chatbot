@@ -6,10 +6,8 @@ import pytest
 from app.domain.agent.sales_agent import SalesAgent, load_system_prompt
 from app.domain.errors import LLMError
 from app.domain.models import LLMResponse
-from app.domain.retrieval.keyword import KeywordSearch
 from app.domain.tools.base import ToolRegistry
-from app.domain.tools.search_products import SearchProductsTool
-from tests.fakes import FakeLLM, InMemoryProducts, make_product, tool_call
+from tests.fakes import FakeLLM, InMemoryProducts, make_product, make_search_tool, tool_call
 
 PRODUCTS = InMemoryProducts([make_product("black-clutch")])
 
@@ -19,7 +17,7 @@ def final(message: str, handles: list[str]) -> LLMResponse:
 
 
 def build_agent(llm: FakeLLM, max_rounds: int = 3) -> SalesAgent:
-    tool = SearchProductsTool(KeywordSearch(PRODUCTS), "EGP", result_limit=5)
+    tool = make_search_tool(PRODUCTS)
     return SalesAgent(llm, ToolRegistry([tool]), PRODUCTS, load_system_prompt(), max_rounds)
 
 

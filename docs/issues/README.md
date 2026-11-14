@@ -20,7 +20,7 @@ The bot is built as **vertical slices (tracer bullets)**: every issue cuts throu
 | 003 | [Tracer bullet over WhatsApp](003-tracer-whatsapp.md) | 002 | 30m | ✅ Done |
 | 004 | [Bot remembers the conversation](004-conversation-memory.md) | 002 | 30m | ✅ Done |
 | 005 | [Discovery & friendliness ("Nour")](005-discovery-friendliness.md) | 004 | 45m | ✅ Done |
-| 006 | [Smarter matching (hybrid retrieval with pgvector)](006-hybrid-retrieval.md) | 002 | 40m | ⚪ Todo |
+| 006 | [Smarter matching (hybrid retrieval with pgvector)](006-hybrid-retrieval.md) | 002 | 40m | ✅ Done |
 | 007 | [Store FAQ answers](007-store-faq.md) | 002 | 10m | ✅ Done |
 | 008 | [Human-like WhatsApp experience](008-human-like-whatsapp.md) | 003, 004 | 30m | ✅ Done ⏳ |
 | 009 | [Resilience: LLM fallback & graceful failure](009-resilience.md) | 002 | 20m | 🔵 In progress |

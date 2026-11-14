@@ -14,7 +14,14 @@ from app.domain.discovery import DiscoveryPolicy
 from app.domain.errors import ConfigurationError
 from app.domain.llm.fallback_chain import FallbackLLMProvider, ProviderSlot
 from app.domain.ports import StaffNotifier
+from app.domain.retrieval.base import Retriever
 from app.domain.retrieval.keyword import KeywordSearch
+from app.domain.retrieval.retrievers import (
+    FallbackRetriever,
+    HybridRetriever,
+    KeywordRetriever,
+    VectorRetriever,
+)
 from app.domain.tools.base import ToolRegistry
 from app.domain.tools.search_products import SearchProductsTool
 from app.infra.cache.redis_buffer import RedisMessageBuffer
@@ -29,7 +36,9 @@ from app.infra.catalog.json_repository import JsonProductRepository
 from app.infra.db.conversation_store import PostgresConversationStore
 from app.infra.db.follow_up_store import PostgresFollowUpStore
 from app.infra.db.handoff_store import PostgresHandoffStore
+from app.infra.db.pgvector_index import PgVectorIndex, ensure_vector_support
 from app.infra.db.session import create_engine, create_session_factory, create_tables
+from app.infra.llm.openai_embedder import OpenAIEmbedder
 from app.infra.llm.openai_provider import OpenAICompatibleProvider
 from app.infra.whatsapp.staff_notifier import (
     CompositeStaffNotifier,
@@ -116,12 +125,44 @@ def build_llm(settings: Settings) -> FallbackLLMProvider:
     return FallbackLLMProvider(slots, settings.llm_max_retries, settings.llm_retry_base_delay_seconds)
 
 
+def build_retriever(settings: Settings, keyword: KeywordSearch) -> Retriever:
+    """The configured retrieval strategy. Semantic strategies fall back to keyword search when unavailable."""
+    baseline = KeywordRetriever(keyword)
+    if settings.retriever == "keyword":
+        return baseline
+    if settings.retriever not in ("vector", "hybrid"):
+        raise ConfigurationError(f"Unknown RETRIEVER {settings.retriever!r}: use keyword, vector or hybrid")
+    if not settings.openai_api_key:
+        logger.warning(
+            "RETRIEVER=%s needs an OpenAI key for embeddings; using keyword search", settings.retriever
+        )
+        return baseline
+    embedder = build_embedder(settings)
+    index = PgVectorIndex(create_session_factory(_engine()))
+    if settings.retriever == "vector":
+        return FallbackRetriever(VectorRetriever(embedder, index, _products()), baseline)
+    return FallbackRetriever(HybridRetriever(embedder, index, _products(), keyword), baseline)
+
+
+def build_embedder(settings: Settings) -> OpenAIEmbedder:
+    return OpenAIEmbedder(
+        settings.openai_api_key,
+        settings.embedding_model,
+        settings.llm_timeout_seconds,
+        settings.embedding_batch_size,
+    )
+
+
 @lru_cache
 def build_agent() -> SalesAgent:
     settings = get_settings()
     products = _products()
+    keyword = KeywordSearch(products)
     search_tool = SearchProductsTool(
-        KeywordSearch(products), settings.store_currency, settings.search_result_limit
+        build_retriever(settings, keyword),
+        keyword.categories(),
+        settings.store_currency,
+        settings.search_result_limit,
     )
     return SalesAgent(
         llm=build_llm(settings),
@@ -199,8 +240,9 @@ def build_incoming_message_service() -> IncomingMessageService:
 
 
 async def init_storage() -> None:
-    """Startup hook: make sure the Postgres tables exist."""
+    """Startup hook: make sure the Postgres tables (and, when available, the pgvector table) exist."""
     await create_tables(_engine())
+    await ensure_vector_support(_engine())
 
 
 async def close_storage() -> None:

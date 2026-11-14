@@ -41,3 +41,6 @@ Checks (from the second phone, an allowed number):
 
 ### Known flake (not a bug to fix tonight)
 The conversation evals showed an occasional (~1 in 5 runs) reply in Arabic to an English customer in the `gift_for_mum` scenario. A prompt rule exists; the model (gpt-5-mini) still drifts rarely.
+
+### 006: Hybrid retrieval with pgvector (done tonight, nothing manual)
+Already done and verified: the Postgres container now runs `pgvector/pgvector:0.8.7-pg17-trixie` (your data was backed up first and is intact), the 212 products are embedded (`python scripts/build_embeddings.py`; a second run embeds 0), and the app uses `RETRIEVER=hybrid`. Optional: `python scripts/eval_retrieval.py` prints hit@3 for keyword/vector/hybrid. If you ever add products, re-run `python scripts/build_embeddings.py` (it only embeds what changed). If pgvector or embeddings are unavailable the bot silently falls back to keyword search (logged as `retrieval_fallback`).

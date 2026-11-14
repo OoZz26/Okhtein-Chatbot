@@ -35,3 +35,7 @@ class AllProvidersFailedError(LLMError):
 
 class InvalidTransitionError(OkhteinError):
     """A state change that the state machine does not allow (for example releasing a bot-active chat)."""
+
+
+class RetrievalError(OkhteinError):
+    """Semantic search is unavailable (embedding service down, pgvector missing, index empty)."""

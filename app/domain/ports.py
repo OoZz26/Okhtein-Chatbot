@@ -6,7 +6,15 @@ from typing import Any, Protocol
 
 from app.domain.discovery import SessionState
 from app.domain.handoff import HandoffState
-from app.domain.models import ChatMessage, LLMResponse, Product, ToolSpec
+from app.domain.models import (
+    ChatMessage,
+    IndexedProduct,
+    LLMResponse,
+    Product,
+    ScoredHandle,
+    ToolSpec,
+    VectorFilters,
+)
 
 
 class ProductRepository(Protocol):
@@ -148,3 +156,23 @@ class StaffNotifier(Protocol):
     """Tells the team that a customer needs a person."""
 
     async def notify(self, chat_id: str, state: HandoffState) -> None: ...
+
+
+class Embedder(Protocol):
+    """Turns text into vectors that are close together when the meanings are close."""
+
+    async def embed(self, texts: Sequence[str]) -> list[list[float]]: ...
+
+
+class VectorIndex(Protocol):
+    """Stores product vectors and finds the nearest ones, with filters applied in the same step."""
+
+    async def upsert(self, items: Sequence[IndexedProduct]) -> None: ...
+
+    async def search(self, vector: Sequence[float], filters: VectorFilters, k: int) -> list[ScoredHandle]: ...
+
+    async def indexed_hashes(self) -> dict[str, tuple[str, str]]:
+        """handle -> (content_hash, embedding_model) for everything currently indexed."""
+        ...
+
+    async def delete(self, handles: Sequence[str]) -> None: ...

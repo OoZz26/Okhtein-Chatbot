@@ -37,7 +37,8 @@ class Settings(BaseSettings):
 
     # --- Embeddings ---
     embedding_model: str = "text-embedding-3-small"
-    embeddings_path: str = "data/embeddings.npy"
+    embedding_batch_size: int = 100
+    retriever: str = "hybrid"  # keyword | vector | hybrid
 
     # --- Redis (short-term memory) ---
     redis_host: str = "localhost"

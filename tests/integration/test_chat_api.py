@@ -8,12 +8,17 @@ from app.api.chat import get_chat_service
 from app.domain.agent.sales_agent import SalesAgent, load_system_prompt
 from app.domain.errors import LLMError
 from app.domain.models import LLMResponse
-from app.domain.retrieval.keyword import KeywordSearch
 from app.domain.tools.base import ToolRegistry
-from app.domain.tools.search_products import SearchProductsTool
 from app.main import create_app
 from app.services.chat_service import HOLDING_MESSAGE, ChatService
-from tests.fakes import FakeLLM, InMemoryProducts, make_chat_service, make_product, tool_call
+from tests.fakes import (
+    FakeLLM,
+    InMemoryProducts,
+    make_chat_service,
+    make_product,
+    make_search_tool,
+    tool_call,
+)
 
 PRODUCTS = InMemoryProducts([make_product("black-clutch")])
 
@@ -24,7 +29,7 @@ class FailingLLM:
 
 
 def service_with(llm: object) -> ChatService:
-    tool = SearchProductsTool(KeywordSearch(PRODUCTS), "EGP", result_limit=5)
+    tool = make_search_tool(PRODUCTS)
     agent = SalesAgent(llm, ToolRegistry([tool]), PRODUCTS, load_system_prompt(), 3)  # type: ignore[arg-type]
     return make_chat_service(agent)
 

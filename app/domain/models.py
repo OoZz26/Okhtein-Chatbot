@@ -114,3 +114,42 @@ class ProductCard:
     @property
     def caption(self) -> str:
         return "\n".join([f"*{self.title}*", self.price_text, self.link])
+
+
+@dataclass(frozen=True)
+class ScoredHandle:
+    """A vector-search hit: which product, and how similar (0..1, higher is better)."""
+
+    handle: str
+    score: float
+
+
+@dataclass(frozen=True)
+class VectorFilters:
+    """Hard constraints applied in the same query as the similarity ranking."""
+
+    category: str | None = None
+    max_price: float | None = None
+    in_stock_only: bool = True
+
+
+@dataclass(frozen=True)
+class IndexedProduct:
+    """One product in the vector index: facts for filtering stored next to the embedding."""
+
+    handle: str
+    content_hash: str
+    embedding_model: str
+    category: str
+    price_min: float
+    available: bool
+    title: str
+    embedding: tuple[float, ...]
+
+
+@dataclass(frozen=True)
+class ProductGroup:
+    """A product model with its colour variants collapsed: the best match plus the other colours."""
+
+    product: Product
+    other_colours: tuple[str, ...] = ()

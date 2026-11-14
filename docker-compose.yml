@@ -2,7 +2,7 @@
 # Named volumes (not bind mounts) because the project lives on a Windows drive.
 services:
   postgres:
-    image: postgres:17
+    image: pgvector/pgvector:0.8.7-pg17-trixie  # postgres 17 + the pgvector extension (same major version: the data volume keeps working)
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-okhtein}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-okhtein}
