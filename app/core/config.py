@@ -21,7 +21,6 @@ class Settings(BaseSettings):
     store_url: str = "https://eg.okhtein.com"
     store_currency: str = "EGP"
     products_path: str = "data/products.json"
-    categories_path: str = "data/categories.json"
     knowledge_path: str = "data/knowledge.md"
 
     # --- LLM: OpenAI primary, OpenRouter fallback ---

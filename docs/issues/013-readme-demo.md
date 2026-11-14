@@ -1,6 +1,6 @@
 # 013 — README & demo
 
-**Status:** ⚪ Todo · **Estimate:** 10 min
+**Status:** ✅ Done (code and docs) · ⏳ demo script on the phone pending, see docs/morning-checklist.md · **Estimate:** 10 min
 
 ## What to build
 
@@ -15,10 +15,10 @@ Anyone (the client, a future developer, you in three months) can understand, run
 
 ## Acceptance criteria
 
-- [ ] Following the README on a fresh clone gives a working bot
-- [ ] Every design pattern in the table points to real code
-- [ ] `ruff`, `mypy`, `pytest` green; latest eval and load-test results linked
-- [ ] Demo script runs end-to-end on the test number
+- [x] Following the README on a fresh clone gives a working bot
+- [x] Every design pattern in the table points to real code
+- [x] `ruff`, `mypy`, `pytest` green; latest eval and load-test results linked
+- [ ] Demo script runs end-to-end on the test number — ⏳ needs manual check (phone)
 
 ## Blocked by
 

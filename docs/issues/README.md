@@ -23,13 +23,13 @@ The bot is built as **vertical slices (tracer bullets)**: every issue cuts throu
 | 006 | [Smarter matching (hybrid retrieval with pgvector)](006-hybrid-retrieval.md) | 002 | 40m | ✅ Done |
 | 007 | [Store FAQ answers](007-store-faq.md) | 002 | 10m | ✅ Done |
 | 008 | [Human-like WhatsApp experience](008-human-like-whatsapp.md) | 003, 004 | 30m | ✅ Done ⏳ |
-| 009 | [Resilience: LLM fallback & graceful failure](009-resilience.md) | 002 | 20m | 🔵 In progress |
+| 009 | [Resilience: LLM fallback & graceful failure](009-resilience.md) | 002 | 20m | ✅ Done ⏳ |
 | 010 | [Human handoff](010-human-handoff.md) | 003, 004 | 20m | ✅ Done ⏳ |
 | 011 | [Returning customer](011-returning-customer.md) | 005 | 15m | ✅ Done |
 | 012 | [Load test](012-load-test.md) | 008 | 20m | ✅ Done ⏳ |
-| 013 | [README & demo](013-readme-demo.md) | all | 10m | ⚪ Todo |
+| 013 | [README & demo](013-readme-demo.md) | all | 10m | ✅ Done ⏳ |
 
-Statuses: ⚪ Todo · 🟡 Ready · 🔵 In progress · ✅ Done
+Statuses: ⚪ Todo · 🟡 Ready · 🔵 In progress · ✅ Done · ⏳ done in code, a manual phone/`.env` check is still pending (see [`../morning-checklist.md`](../morning-checklist.md))
 
 **Critical path:** 001 → 002 → 003 gives a working WhatsApp bot in ~1h15. After that 004, 006,
 007 and 009 only need 002 and can go in any order. If time runs out, drop from the bottom:
