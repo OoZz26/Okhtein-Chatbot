@@ -74,4 +74,6 @@ def test_llm_failure_gives_the_customer_a_friendly_holding_reply(client: TestCli
 
 
 def test_empty_text_is_rejected(client: TestClient) -> None:
+    # Override the service so the test never depends on real API keys being present in .env.
+    client.app.dependency_overrides[get_chat_service] = lambda: service_with(FailingLLM())  # type: ignore[attr-defined]
     assert client.post("/chat", json={"chat_id": "c1", "text": ""}).status_code == 422
