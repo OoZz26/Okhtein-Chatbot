@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     llm_timeout_seconds: float = 45.0
     max_tool_rounds: int = 5
+    search_result_limit: int = 5
 
     # --- Embeddings ---
     embedding_model: str = "text-embedding-3-small"

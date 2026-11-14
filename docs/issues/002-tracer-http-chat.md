@@ -1,6 +1,6 @@
 # 002 — Tracer bullet: chat over HTTP returns a real product link
 
-**Status:** ⚪ Todo · **Estimate:** 35 min
+**Status:** ✅ Done · **Estimate:** 35 min
 
 ## What to build
 
@@ -28,14 +28,14 @@ AgentReply:
 
 ## Acceptance criteria
 
-- [ ] Sending "I want a black clutch" to the chat endpoint returns a reply containing at least one link that exists in the catalog
-- [ ] Out-of-stock products are not recommended unless the customer asks for them
-- [ ] A budget in the request ("under 50,000") is respected by search results
-- [ ] If the LLM returns an unknown handle or URL, it is removed and logged (unit test with `FakeLLM`)
-- [ ] The agent's tool loop is unit-tested with `FakeLLM` (tool call → tool result → final answer), no network
-- [ ] The domain layer imports neither `openai` nor `fastapi` (enforced by a test or lint rule)
-- [ ] One API-level test hits the chat endpoint with the fake LLM wired in through dependency injection
-- [ ] Manual demo: a `curl` / Swagger call with the real OpenAI key returns a sensible recommendation
+- [x] Sending "I want a black clutch" to the chat endpoint returns a reply containing at least one link that exists in the catalog
+- [x] Out-of-stock products are not recommended unless the customer asks for them
+- [x] A budget in the request ("under 50,000") is respected by search results
+- [x] If the LLM returns an unknown handle or URL, it is removed and logged (unit test with `FakeLLM`)
+- [x] The agent's tool loop is unit-tested with `FakeLLM` (tool call → tool result → final answer), no network
+- [x] The domain layer imports neither `openai` nor `fastapi` (enforced by a test or lint rule)
+- [x] One API-level test hits the chat endpoint with the fake LLM wired in through dependency injection
+- [x] Manual demo: a `curl` / Swagger call with the real OpenAI key returns a sensible recommendation
 
 ## Blocked by
 
