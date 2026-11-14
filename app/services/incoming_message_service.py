@@ -58,5 +58,5 @@ class IncomingMessageService:
     async def _reply_text(self, message: IncomingMessage) -> str:
         if message.has_media or not message.text.strip():
             return TEXT_ONLY_REPLY
-        result = await self._chat.handle_message(message.chat_id, message.text)
+        result = await self._chat.handle_message(message.chat_id, message.text, message.sender_name)
         return result.reply

@@ -1,9 +1,15 @@
 """Fakes of the domain ports, used instead of mocks so tests exercise real code paths."""
 
 from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from fakeredis import FakeAsyncRedis
+
 from app.domain.models import ChatMessage, LLMResponse, Product, ToolCall, ToolSpec
+from app.infra.cache.redis_short_term import RedisShortTermMemory
+from app.services.memory_service import MemoryService
 
 
 class FakeLLM:
@@ -75,3 +81,58 @@ class InMemoryIdempotency:
             return False
         self._claimed.add(key)
         return True
+
+
+class FakeClock:
+    """A clock tests can move forward by hand."""
+
+    def __init__(self) -> None:
+        self.now = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
+
+    def __call__(self) -> datetime:
+        return self.now
+
+    def advance(self, **delta: float) -> None:
+        self.now += timedelta(**delta)
+
+
+class InMemoryConversationStore:
+    """Stands in for Postgres: keeps rows in lists."""
+
+    def __init__(self) -> None:
+        self.rows: list[tuple[str, ChatMessage, datetime]] = []
+        self.customers: dict[str, str] = {}
+
+    async def upsert_customer(self, chat_id: str, display_name: str, seen_at: datetime) -> None:
+        if display_name or chat_id not in self.customers:
+            self.customers[chat_id] = display_name
+
+    async def save_message(self, chat_id: str, message: ChatMessage, created_at: datetime) -> None:
+        self.rows.append((chat_id, message, created_at))
+
+    async def last_message_at(self, chat_id: str) -> datetime | None:
+        times = [at for cid, _, at in self.rows if cid == chat_id]
+        return max(times) if times else None
+
+    async def recent_messages(self, chat_id: str, limit: int) -> list[ChatMessage]:
+        return [m for cid, m, _ in self.rows if cid == chat_id][-limit:]
+
+
+@dataclass
+class MemoryRig:
+    """A real MemoryService wired to fakeredis + the in-memory store, with handles to poke at them."""
+
+    service: MemoryService
+    redis: FakeAsyncRedis
+    store: InMemoryConversationStore
+    clock: FakeClock
+
+
+def make_memory(history_limit: int = 20, ttl_seconds: int = 86400) -> MemoryRig:
+    redis = FakeAsyncRedis(decode_responses=True)
+    store = InMemoryConversationStore()
+    clock = FakeClock()
+    service = MemoryService(
+        RedisShortTermMemory(redis, history_limit, ttl_seconds), store, history_limit, ttl_seconds, clock
+    )
+    return MemoryRig(service, redis, store, clock)

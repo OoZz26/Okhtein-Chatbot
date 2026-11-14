@@ -1,6 +1,6 @@
 # 004 — Bot remembers the conversation
 
-**Status:** ⚪ Todo · **Estimate:** 30 min
+**Status:** ✅ Done · **Estimate:** 30 min
 
 ## What to build
 
@@ -19,14 +19,14 @@ Two-tier memory, hidden behind a memory facade so the agent never sees Redis or 
 
 ## Acceptance criteria
 
-- [ ] "Show me a cheaper one" after a recommendation returns cheaper related products (integration test or eval)
-- [ ] Flushing Redis between two messages keeps the context (cache-aside works)
-- [ ] Restarting the app keeps the context
-- [ ] Every message appears in Postgres with chat id, role and timestamp
-- [ ] At most N messages are sent to the LLM (unit test)
-- [ ] After TTL expiry a new session starts (test with a short TTL)
-- [ ] Unit tests use fakes (e.g. fakeredis + in-memory store); integration tests use the real Docker services
-- [ ] The agent and conversation service depend only on the memory port, not on Redis/SQLAlchemy
+- [x] "Show me a cheaper one" after a recommendation returns cheaper related products (integration test or eval)
+- [x] Flushing Redis between two messages keeps the context (cache-aside works)
+- [x] Restarting the app keeps the context
+- [x] Every message appears in Postgres with chat id, role and timestamp
+- [x] At most N messages are sent to the LLM (unit test)
+- [x] After TTL expiry a new session starts (test with a short TTL)
+- [x] Unit tests use fakes (e.g. fakeredis + in-memory store); integration tests use the real Docker services
+- [x] The agent and conversation service depend only on the memory port, not on Redis/SQLAlchemy
 
 ## Blocked by
 

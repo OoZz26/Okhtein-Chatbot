@@ -1,14 +1,19 @@
 """FastAPI application factory. Run with: uvicorn app.main:app --reload"""
 
 import logging
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from app import bootstrap
 from app.api import chat, health, webhook
 from app.domain.errors import ConfigurationError, LLMError
 
 logger = logging.getLogger(__name__)
+
+Hook = Callable[[], Awaitable[None]]
 
 
 async def _llm_unavailable(_: Request, exc: Exception) -> JSONResponse:
@@ -20,9 +25,19 @@ async def _misconfigured(_: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(status_code=500, content={"detail": str(exc)})
 
 
-def create_app() -> FastAPI:
+def create_app(startup: Hook | None = None, shutdown: Hook | None = None) -> FastAPI:
+    """Build the app. Startup/shutdown hooks are injected so tests can run without Docker services."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
-    app = FastAPI(title="Okhtein WhatsApp Bot")
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        if startup:
+            await startup()
+        yield
+        if shutdown:
+            await shutdown()
+
+    app = FastAPI(title="Okhtein WhatsApp Bot", lifespan=lifespan)
     app.include_router(health.router)
     app.include_router(chat.router)
     app.include_router(webhook.router)
@@ -31,4 +46,4 @@ def create_app() -> FastAPI:
     return app
 
 
-app = create_app()
+app = create_app(startup=bootstrap.init_storage, shutdown=bootstrap.close_storage)

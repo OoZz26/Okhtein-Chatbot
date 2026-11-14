@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -46,8 +47,13 @@ class SalesAgent:
         self._system_prompt = system_prompt
         self._max_tool_rounds = max_tool_rounds
 
-    async def respond(self, user_text: str) -> AgentReply:
-        messages = [ChatMessage("system", self._system_prompt), ChatMessage("user", user_text)]
+    async def respond(self, user_text: str, history: Sequence[ChatMessage] = ()) -> AgentReply:
+        """`history` is the earlier conversation, oldest first. The agent never knows where it came from."""
+        messages = [
+            ChatMessage("system", self._system_prompt),
+            *history,
+            ChatMessage("user", user_text),
+        ]
         for _ in range(self._max_tool_rounds):
             response = await self._llm.chat(messages, self._tools.specs(), REPLY_SCHEMA)
             if not response.tool_calls:

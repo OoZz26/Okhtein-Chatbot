@@ -7,7 +7,14 @@ from app.domain.models import IncomingMessage, LLMResponse
 from app.domain.tools.base import ToolRegistry
 from app.services.chat_service import ChatService
 from app.services.incoming_message_service import TEXT_ONLY_REPLY, IncomingMessageService
-from tests.fakes import FakeGateway, FakeLLM, InMemoryIdempotency, InMemoryProducts, make_product
+from tests.fakes import (
+    FakeGateway,
+    FakeLLM,
+    InMemoryIdempotency,
+    InMemoryProducts,
+    make_memory,
+    make_product,
+)
 
 CUSTOMER = "201001234567@c.us"
 
@@ -26,7 +33,10 @@ def build(
     agent = SalesAgent(FakeLLM([reply] * llm_replies), ToolRegistry([]), products, load_system_prompt(), 3)
     gateway = FakeGateway()
     service = IncomingMessageService(
-        ChatService(agent, "https://eg.okhtein.com"), gateway, InMemoryIdempotency(), allowed
+        ChatService(agent, make_memory().service, "https://eg.okhtein.com"),
+        gateway,
+        InMemoryIdempotency(),
+        allowed,
     )
     return service, gateway
 

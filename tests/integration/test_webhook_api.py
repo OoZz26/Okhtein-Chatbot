@@ -16,7 +16,14 @@ from app.domain.tools.base import ToolRegistry
 from app.main import create_app
 from app.services.chat_service import ChatService
 from app.services.incoming_message_service import IncomingMessageService
-from tests.fakes import FakeGateway, FakeLLM, InMemoryIdempotency, InMemoryProducts, make_product
+from tests.fakes import (
+    FakeGateway,
+    FakeLLM,
+    InMemoryIdempotency,
+    InMemoryProducts,
+    make_memory,
+    make_product,
+)
 
 KEY = "test-hmac-key"
 REPLY = LLMResponse(json.dumps({"message": "Hello!", "product_handles": ["black-clutch"]}))
@@ -42,7 +49,7 @@ def wired_app(llm: FakeLLM) -> tuple[FastAPI, FakeGateway]:
     agent = SalesAgent(llm, ToolRegistry([]), products, load_system_prompt(), 3)
     gateway = FakeGateway()
     service = IncomingMessageService(
-        ChatService(agent, "https://eg.okhtein.com"), gateway, InMemoryIdempotency()
+        ChatService(agent, make_memory().service, "https://eg.okhtein.com"), gateway, InMemoryIdempotency()
     )
     app = create_app()
     app.dependency_overrides[get_incoming_message_service] = lambda: service
