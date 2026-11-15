@@ -164,7 +164,7 @@ class InMemoryConversationStore:
 
     async def messages_after(self, chat_id: str, after: datetime | None, limit: int) -> list[ChatMessage]:
         rows = [m for cid, m, at in self.rows if cid == chat_id and (after is None or at > after)]
-        return rows[:limit]
+        return rows[-limit:]  # the newest `limit`, oldest first (like the Postgres store)
 
 
 @dataclass
@@ -431,13 +431,16 @@ class InMemoryProfileStore:
 class FakeSummarizer:
     """Returns scripted summaries and records what it was asked to summarise."""
 
-    def __init__(self, *summaries: str, fail: bool = False) -> None:
+    def __init__(self, *summaries: str, fail: bool = False, delay: float = 0.0) -> None:
+        self.delay = delay
         self._summaries = list(summaries) or ["Likes bold gold pieces."]
         self.fail = fail
         self.calls: list[list[ChatMessage]] = []
 
     async def summarize(self, messages: Sequence[ChatMessage], known: CustomerProfile) -> str:
         self.calls.append(list(messages))
+        if self.delay:
+            await asyncio.sleep(self.delay)
         if self.fail:
             raise LLMError("summarizer down")
         return self._summaries.pop(0) if len(self._summaries) > 1 else self._summaries[0]
@@ -450,11 +453,21 @@ class ReturningRig:
     summarizer: FakeSummarizer
 
 
-def make_returning(rig: MemoryRig | None = None, summarizer: FakeSummarizer | None = None) -> ReturningRig:
+def make_returning(
+    rig: MemoryRig | None = None,
+    summarizer: FakeSummarizer | None = None,
+    summary_wait_seconds: float | None = None,
+) -> ReturningRig:
     """ReturningCustomerService over fakes, sharing the memory rig's store and clock."""
     rig = rig or make_memory()
     profiles, summarizer = InMemoryProfileStore(), summarizer or FakeSummarizer()
     service = ReturningCustomerService(
-        profiles, rig.store, summarizer, summary_max_chars=300, shown_limit=20, clock=rig.clock
+        profiles,
+        rig.store,
+        summarizer,
+        summary_max_chars=300,
+        shown_limit=20,
+        clock=rig.clock,
+        summary_wait_seconds=summary_wait_seconds,
     )
     return ReturningRig(service, profiles, summarizer)

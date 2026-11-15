@@ -222,6 +222,7 @@ def build_returning_customer_service() -> ReturningCustomerService:
         summarizer=LLMProfileSummarizer(build_llm(settings)),
         summary_max_chars=settings.profile_summary_max_chars,
         shown_limit=settings.profile_products_shown_limit,
+        summary_wait_seconds=settings.profile_summary_wait_seconds,
     )
 
 

@@ -139,6 +139,6 @@ Done and measured overnight (results in `docs/load-test-results.md`): webhook p9
   4. ✅ Fixed — a failing "mark as seen" is logged and the message is still answered.
   5. ✅ Mitigated — default `SEND_RATE_LIMIT_PER_MINUTE` raised 20 → 60 and documented in `docs/load-test-results.md`. It is still one counter for the whole number (that is the point: it protects the number), so pick the value you trust for WhatsApp.
   6. ✅ Fixed — every staff message restarts the 12 h handoff timer.
-  7. ⚪ Open — returning-customer summary skips everything after the first 60 messages of a visit.
-  8. ⚪ Open — that summary LLM call runs before the first reply → slower "welcome back".
+  7. ✅ Fixed — the summary now reads the newest 60 messages of a visit (the end, where taste is clearest), never skips them.
+  8. ✅ Fixed — the first reply waits at most `PROFILE_SUMMARY_WAIT_SECONDS` (3) for the summary; if slower it finishes in the background, and it no longer overwrites slots saved meanwhile.
   9. ✅ `Debouncer._names` leak fixed (entry removed after use); ⚪ `build_llm` still builds two provider chains (harmless).

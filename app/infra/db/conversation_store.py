@@ -36,14 +36,15 @@ class PostgresConversationStore:
             return (await session.execute(query)).scalar()
 
     async def messages_after(self, chat_id: str, after: datetime | None, limit: int) -> list[ChatMessage]:
-        """Everything said after `after` (or since the beginning), oldest first."""
+        """The newest `limit` messages said after `after` (or since the beginning), oldest first.
+        Newest, not oldest: in a long visit the end is where the customer's taste is clearest."""
         query = select(MessageRow).where(MessageRow.chat_id == chat_id)
         if after is not None:
             query = query.where(MessageRow.created_at > after)
-        query = query.order_by(MessageRow.id).limit(limit)
+        query = query.order_by(MessageRow.id.desc()).limit(limit)
         async with self._session_factory() as session:
             rows = (await session.execute(query)).scalars().all()
-        return [ChatMessage(cast(Role, row.role), row.content) for row in rows]
+        return [ChatMessage(cast(Role, row.role), row.content) for row in reversed(rows)]
 
     async def recent_messages(self, chat_id: str, limit: int) -> list[ChatMessage]:
         query = (

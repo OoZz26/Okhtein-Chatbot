@@ -177,6 +177,45 @@ class TestReturningCustomerService:
         assert context.welcome_back  # still welcomed, from the slots alone
         assert "colour: gold" in context.notes
 
+    async def test_a_long_visit_is_summarised_from_its_end_where_taste_is_clearest(self) -> None:
+        rig = make_memory()
+        returning = make_returning(rig)
+        for i in range(35):  # 70 messages, more than the 60 a summary reads
+            await visit(rig, f"message {i}", "ok")
+        await visit(rig, "actually I prefer silver now", "Silver it is")
+
+        await returning.service.context_for(CHAT, new_session=True)
+
+        summarised = [m.content for m in returning.summarizer.calls[0]]
+        assert len(summarised) == 60
+        assert summarised[-2:] == ["actually I prefer silver now", "Silver it is"]  # the end is never skipped
+
+    async def test_a_slow_summary_does_not_hold_up_the_first_reply(self) -> None:
+        rig = make_memory()
+        returning = make_returning(rig, FakeSummarizer("Likes gold.", delay=0.2), summary_wait_seconds=0.01)
+        await visit(rig, "I love gold", "Lovely")
+        await returning.service.remember(CHAT, CustomerProfile(colour="gold"), [])
+
+        context = await returning.service.context_for(CHAT, new_session=True)
+
+        assert context.welcome_back and "colour: gold" in context.notes  # welcomed back from the slots
+        assert "Likes gold." not in context.notes  # the summary was not ready yet...
+        await returning.service.wait_idle()
+        assert returning.profiles.profiles[CHAT].summary == "Likes gold."  # ...and is stored for later
+
+    async def test_slots_saved_while_the_summary_runs_are_not_overwritten(self) -> None:
+        rig = make_memory()
+        returning = make_returning(rig, FakeSummarizer("Likes gold.", delay=0.05), summary_wait_seconds=0.0)
+        await visit(rig, "I love gold", "Lovely")
+
+        await returning.service.context_for(CHAT, new_session=True)
+        await returning.service.remember(CHAT, CustomerProfile(colour="silver"), [])  # this turn, meanwhile
+        await returning.service.wait_idle()
+
+        stored = returning.profiles.profiles[CHAT]
+        assert stored.summary == "Likes gold."
+        assert stored.slots.colour == "silver"  # the summary did not erase what this turn learned
+
     async def test_remember_writes_through_each_turn_and_skips_empty_turns(self) -> None:
         returning: ReturningRig = make_returning()
 
