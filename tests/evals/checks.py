@@ -172,6 +172,16 @@ def _no_products(turns: list[BotTurn], _: Any, __: Callable[[str], float]) -> Ch
     return CheckResult("no_products_shown", not shown, f"handles={shown}")
 
 
+def _no_repeated_products(turns: list[BotTurn], _: Any, __: Callable[[str], float]) -> CheckResult:
+    """No product card is sent twice in one conversation."""
+    seen: set[str] = set()
+    repeated = []
+    for turn in turns:
+        repeated += [h for h in turn.handles if h in seen]
+        seen.update(turn.handles)
+    return CheckResult("no_repeated_products", not repeated, f"repeated={repeated}")
+
+
 def _never_offers_the_impossible(turns: list[BotTurn]) -> CheckResult:
     offers = [m.group(0) for t in turns if (m := OFFERS_WE_CANNOT_FULFIL.search(t.reply))]
     return CheckResult("never_offers_what_it_cannot_do", not offers, f"offers={offers}")
@@ -187,6 +197,7 @@ _CHECKERS: dict[str, Callable[[list[BotTurn], Any, Callable[[str], float]], Chec
     "no_gendered_address": _no_gendered_address,
     "no_instruction_leak": _no_instruction_leak,
     "no_products": _no_products,
+    "no_repeated_products": _no_repeated_products,
     "triggers_handoff": _triggers_handoff,
     "no_handoff": _no_handoff,
     "contains_any": _contains_any,

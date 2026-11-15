@@ -1,5 +1,6 @@
 """The sales agent: runs the tool loop and returns a validated, structured reply."""
 
+import asyncio
 import json
 import logging
 import re
@@ -10,7 +11,7 @@ from typing import Any
 from app.domain.discovery import PROFILE_SLOT_NAMES
 from app.domain.errors import LLMError
 from app.domain.knowledge import render_store_knowledge
-from app.domain.models import AgentContext, AgentReply, ChatMessage, ConversationStage
+from app.domain.models import AgentContext, AgentReply, ChatMessage, ConversationStage, ToolCall
 from app.domain.ports import LLMProvider, ProductRepository, StoreInfoSource
 from app.domain.tools.base import ToolRegistry
 
@@ -50,7 +51,7 @@ REPLY_SCHEMA: dict[str, Any] = {
 }
 
 
-def load_system_prompt(version: str = "v3") -> str:
+def load_system_prompt(version: str = "v4") -> str:
     return (PROMPTS_DIR / f"system_{version}.md").read_text(encoding="utf-8")
 
 
@@ -79,24 +80,55 @@ class SalesAgent:
         context: AgentContext | None = None,
     ) -> AgentReply:
         """`history` is the earlier conversation, oldest first. The agent never knows where it came from."""
+        context = context or AgentContext()
         messages = [
-            ChatMessage("system", self._system_message(context or AgentContext())),
+            ChatMessage("system", self._system_message(context)),
             *history,
             ChatMessage("user", user_text),
+            *self._rule_for_this_reply(context),
         ]
         for _ in range(self._max_tool_rounds):
             response = await self._llm.chat(messages, self._tools.specs(), REPLY_SCHEMA)
             if not response.tool_calls:
                 return self._validate(response.content)
             messages.append(ChatMessage("assistant", response.content, response.tool_calls))
-            for call in response.tool_calls:
-                result = await self._tools.run(call.name, call.arguments)
-                messages.append(
-                    ChatMessage("tool", json.dumps(result, ensure_ascii=False), tool_call_id=call.id)
-                )
+            messages.extend(await self._run_tools(response.tool_calls, context))
         logger.warning("Tool loop hit the %d-round limit; asking for a final answer", self._max_tool_rounds)
         final = await self._llm.chat(messages, (), REPLY_SCHEMA)
         return self._validate(final.content)
+
+    async def _run_tools(self, calls: Sequence[ToolCall], context: AgentContext) -> list[ChatMessage]:
+        """Run every tool call of one round at the same time (several searches cost one wait, not N)."""
+        results = await asyncio.gather(*(self._tools.run(c.name, c.arguments) for c in calls))
+        return [
+            ChatMessage(
+                "tool",
+                json.dumps(self._mark_shown(result, context.shown_products), ensure_ascii=False),
+                tool_call_id=call.id,
+            )
+            for call, result in zip(calls, results, strict=True)
+        ]
+
+    @staticmethod
+    def _mark_shown(result: dict[str, Any], shown: Sequence[str]) -> dict[str, Any]:
+        """Flag search results the customer has already seen, so the model can pick new ones."""
+        items = result.get("results")
+        if not shown or not isinstance(items, list):
+            return result
+
+        def seen(item: object) -> bool:
+            return isinstance(item, dict) and item.get("handle") in shown
+
+        marked = [{**item, "already_shown": True} if seen(item) else item for item in items]
+        return {**result, "results": marked}
+
+    @staticmethod
+    def _rule_for_this_reply(context: AgentContext) -> list[ChatMessage]:
+        """This turn's hard rule (question limit, discovery checklist) goes AFTER the customer's
+        message: models follow what they read last far more reliably than a line deep in the prompt."""
+        if not context.guidance:
+            return []
+        return [ChatMessage("system", f"Rule for this reply: {context.guidance}")]
 
     def _system_message(self, context: AgentContext) -> str:
         notes = [f"Conversation stage so far: {context.stage.value}."]
@@ -108,10 +140,10 @@ class SalesAgent:
             )
         if context.profile_summary:
             notes.append(f"Already known about the customer: {context.profile_summary}. Do not ask again.")
+        if context.shown_products:
+            notes.append(self._shown_note(context.shown_products))
         if context.returning_notes:
             notes.append(self._returning_note(context))
-        if context.guidance:
-            notes.append(context.guidance)
         session_notes = "## Session notes\n" + "\n".join(f"- {note}" for note in notes)
         sections = [self._system_prompt, self._knowledge_section(), session_notes]
         return "\n\n".join(section for section in sections if section)
@@ -122,6 +154,14 @@ class SalesAgent:
         if not raw.strip():
             return ""
         return "# Store knowledge (your ONLY source for store questions)\n\n" + render_store_knowledge(raw)
+
+    def _shown_note(self, handles: Sequence[str]) -> str:
+        names = [product.title for h in handles if (product := self._products.get(h)) is not None]
+        return (
+            f"Products already shown in this chat: {', '.join(names)}. Do NOT recommend them again; "
+            "search results marked already_shown are ones the customer has seen. Show new pieces instead, "
+            "unless the customer asks about one of these by name or refers back to it."
+        )
 
     @staticmethod
     def _returning_note(context: AgentContext) -> str:

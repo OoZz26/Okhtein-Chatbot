@@ -83,7 +83,7 @@ def build_stack(settings: Settings) -> EvalStack:
         build_agent(),
         rig.service,
         RedisSessionStore(session_redis, settings.session_ttl_seconds),
-        DiscoveryPolicy(settings.max_discovery_questions),
+        DiscoveryPolicy(settings.max_discovery_questions, settings.session_products_shown_limit),
         InMemoryFollowUps(),
         make_handoffs().service,
         returning,

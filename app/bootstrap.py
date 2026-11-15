@@ -95,7 +95,10 @@ def build_memory_service() -> MemoryService:
 
 def _openai(settings: Settings) -> OpenAICompatibleProvider:
     return OpenAICompatibleProvider(
-        settings.openai_api_key, settings.openai_model, settings.llm_timeout_seconds
+        settings.openai_api_key,
+        settings.openai_model,
+        settings.llm_timeout_seconds,
+        reasoning_effort=settings.openai_reasoning_effort,
     )
 
 
@@ -233,7 +236,7 @@ def build_chat_service() -> ChatService:
         agent=build_agent(),
         memory=build_memory_service(),
         sessions=RedisSessionStore(_redis(), settings.session_ttl_seconds),
-        policy=DiscoveryPolicy(settings.max_discovery_questions),
+        policy=DiscoveryPolicy(settings.max_discovery_questions, settings.session_products_shown_limit),
         follow_ups=PostgresFollowUpStore(create_session_factory(_engine())),
         handoffs=build_handoff_service(),
         returning=build_returning_customer_service(),

@@ -25,7 +25,10 @@ class OpenAICompatibleProvider:
         base_url: str | None = None,
         headers: dict[str, str] | None = None,
         http_client: openai.DefaultAsyncHttpxClient | None = None,
+        reasoning_effort: str = "",
     ) -> None:
+        """`reasoning_effort`: sent only when set; empty keeps the model's default (and works with
+        providers or models that do not know the parameter)."""
         # max_retries=0: retrying is the chain's job. The SDK's own hidden retries would multiply ours.
         self._client = AsyncOpenAI(
             api_key=api_key,
@@ -36,6 +39,7 @@ class OpenAICompatibleProvider:
             http_client=http_client,
         )
         self._model = model
+        self._reasoning_effort = reasoning_effort
 
     async def chat(
         self,
@@ -44,6 +48,8 @@ class OpenAICompatibleProvider:
         response_schema: dict[str, Any] | None = None,
     ) -> LLMResponse:
         kwargs: dict[str, Any] = {"model": self._model, "messages": [self._message(m) for m in messages]}
+        if self._reasoning_effort:
+            kwargs["reasoning_effort"] = self._reasoning_effort
         if tools:
             kwargs["tools"] = [self._tool(t) for t in tools]
         if response_schema:

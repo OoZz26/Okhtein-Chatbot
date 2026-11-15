@@ -25,7 +25,11 @@ class Settings(BaseSettings):
 
     # --- LLM: OpenAI primary, OpenRouter fallback ---
     openai_api_key: str = ""
-    openai_model: str = "gpt-5-mini"
+    openai_model: str = "gpt-5.4-mini"
+    # How hard the OpenAI model "thinks" before answering. Empty = the model's own default.
+    # gpt-5.4-mini: must be "none" when tools are used (OpenAI rejects anything else on this API).
+    # gpt-5-mini: minimal | low | medium | high. Less thinking = much faster replies.
+    openai_reasoning_effort: str = "none"
     openrouter_api_key: str = ""
     openrouter_model: str = "google/gemini-2.5-flash"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
@@ -33,9 +37,9 @@ class Settings(BaseSettings):
     llm_provider_order: str = "openai,openrouter"
     llm_max_retries: int = 2
     llm_retry_base_delay_seconds: float = 0.5
-    max_tool_rounds: int = 5
+    max_tool_rounds: int = 2  # search rounds per reply; then the model must answer
     search_result_limit: int = 5
-    prompt_version: str = "v3"
+    prompt_version: str = "v4"
     eval_judge_model: str = "gpt-5-mini"
 
     # --- Embeddings ---
@@ -66,7 +70,8 @@ class Settings(BaseSettings):
     # --- Bot behaviour ---
     session_ttl_seconds: int = 24 * 60 * 60
     history_limit: int = Field(default=20, description="Messages kept in short-term history")
-    max_discovery_questions: int = 3
+    max_discovery_questions: int = 5
+    session_products_shown_limit: int = 30  # products remembered as 'already shown' per session
     debounce_seconds: float = 4.0
     webhook_dedup_ttl_seconds: int = 3600
     lock_ttl_seconds: int = 120

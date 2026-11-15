@@ -91,3 +91,16 @@ async def test_base_url_and_headers_are_what_makes_it_openrouter() -> None:
     assert str(seen[0].url) == "https://openrouter.ai/api/v1/chat/completions"
     assert seen[0].headers["X-Title"] == "Okhtein"
     assert json.loads(seen[0].content)["model"] == "model"
+
+
+@pytest.mark.parametrize(("effort", "sent"), [("low", "low"), ("", None)])
+async def test_reasoning_effort_is_sent_only_when_set(effort: str, sent: str | None) -> None:
+    bodies: list[dict[str, object]] = []
+
+    def record(request: httpx2.Request) -> httpx2.Response:
+        bodies.append(json.loads(request.content))
+        return httpx2.Response(200, json=COMPLETION)
+
+    await provider(httpx2.MockTransport(record), reasoning_effort=effort).chat(MESSAGES)
+
+    assert bodies[0].get("reasoning_effort") == sent

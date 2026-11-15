@@ -1,29 +1,30 @@
 # Conversation eval report
 
-Run: 2026-11-14 22:06 · agent model: `gpt-5-mini` · judge model: `gpt-5-mini`
+Run: 2026-11-15 05:11 · agent model: `gpt-5.4-mini` · judge model: `gpt-5-mini`
 
 ```
 scenario                  rules   warmth   dialect  not_pus  brevity  helpful  avg
 ----------------------------------------------------------------------------------
 vague_arabic              PASS    5.0      5.0      5.0      5.0      5.0      5.00
-vague_stays_vague         PASS    5.0      5.0      4.4      5.0      4.4      4.76
-specific_english_budget   PASS    5.0      5.0      5.0      5.0      5.0      5.00
-specific_arabic_wedding   PASS    4.0      5.0      5.0      4.0      5.0      4.60
-impatient                 PASS    4.0      5.0      5.0      5.0      5.0      4.80
-gift_for_mum              PASS    5.0      5.0      5.0      5.0      5.0      5.00
-franco_arabic             PASS    4.0      3.0      5.0      5.0      5.0      4.40
-gender_neutral_arabic     PASS    5.0      5.0      5.0      5.0      5.0      5.00
+vague_stays_vague         PASS    5.0      5.0      4.8      4.4      4.6      4.76
+specific_english_budget   PASS    5.0      5.0      5.0      5.0      3.0      4.60
+specific_arabic_wedding   PASS    5.0      5.0      5.0      5.0      5.0      5.00
+impatient                 PASS    5.0      5.0      4.0      4.0      4.0      4.40
+gift_for_mum              PASS    4.0      5.0      5.0      4.7      5.0      4.73
+franco_arabic             PASS    5.0      5.0      5.0      5.0      5.0      5.00
+gender_neutral_arabic     PASS    5.0      4.0      5.0      5.0      5.0      4.80
 injection_and_off_topic   PASS    5.0      5.0      5.0      5.0      5.0      5.00
-asks_for_the_impossible   PASS    5.0      5.0      5.0      5.0      5.0      5.00
-faq_returns_known         PASS    5.0      5.0      5.0      5.0      5.0      5.00
-faq_shipping_unknown      PASS    5.0      5.0      5.0      5.0      5.0      5.00
-handoff_order_tracking    PASS    4.0      5.0      5.0      5.0      4.0      4.60
-handoff_angry_complaint   PASS    5.0      5.0      5.0      5.0      5.0      5.00
-handoff_asks_for_person   PASS    3.0      5.0      5.0      5.0      4.0      4.40
-no_false_handoff          PASS    5.0      5.0      5.0      5.0      5.0      5.00
-returning_customer        PASS    5.0      5.0      5.0      4.7      4.7      4.87
+asks_for_the_impossible   PASS    4.0      5.0      5.0      5.0      4.0      4.60
+faq_returns_known         PASS    5.0      4.0      5.0      5.0      5.0      4.80
+faq_shipping_unknown      PASS    4.0      5.0      5.0      5.0      4.0      4.60
+handoff_order_tracking    PASS    5.0      5.0      5.0      5.0      5.0      5.00
+handoff_angry_complaint   PASS    5.0      4.0      5.0      5.0      4.0      4.60
+handoff_asks_for_person   PASS    4.0      5.0      5.0      5.0      4.0      4.60
+show_me_more_no_repeats   PASS    4.3      5.0      5.0      5.0      4.0      4.67
+no_false_handoff          PASS    5.0      5.0      5.0      4.0      5.0      4.80
+returning_customer        PASS    5.0      5.0      4.7      4.3      5.0      4.80
 ----------------------------------------------------------------------------------
-overall friendliness average: 4.85 (target >= 4.0, no scenario below 3.0)
+overall friendliness average: 4.76 (target >= 4.0, no scenario below 3.0)
 RESULT: TARGETS MET
 ```
 
@@ -35,16 +36,17 @@ _The customer is vague (only a category). A good stylist asks ONE friendly quest
 
 - ✅ `never_offers_what_it_cannot_do` offers=[]
 - ✅ `first_reply_asks_not_shows` handles=[] asked=True
-- ✅ `language_arabic` arabic_ratios=[1.0]
-- ✅ `max_3_questions_before_products` asked=1
+- ✅ `language_english` arabic_ratios=[0.0]
+- ✅ `max_5_questions_before_products` asked=1
 
 **Customer:** عايزة شنطة
 
 **Nour:**
 
-> أهلاً بحضرتك في أوختين 🤍 يسعدني أساعد حضرتك. الشنطة للاستخدام اليومي ولا لمناسبة معينة؟
+> Welcome to Okhtein 🤍
+> Is this for yourself or for a gift?
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Warm, natural Egyptian phrasing that asks one clear, non-pushy clarifying question and doesn't push products—exactly what's needed for a vague initial request.*
+*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Warm, concise English message that asks one clear, non-pushy question to move the conversation forward.*
 
 ## vague_stays_vague: PASS · 4.76
 
@@ -54,71 +56,90 @@ _The customer keeps answering vaguely. After at most 3 questions the bot must st
 
 - ✅ `never_offers_what_it_cannot_do` offers=[]
 - ✅ `first_reply_asks_not_shows` handles=[] asked=True
-- ✅ `max_3_questions_before_products` asked=3
-- ✅ `products_by_turn_4` at=4
-- ✅ `language_arabic` arabic_ratios=[1.0, 1.0, 1.0, 0.72, 1.0]
+- ✅ `max_5_questions_before_products` asked=2
+- ✅ `products_by_turn_4` at=3
+- ✅ `language_english` arabic_ratios=[0.0, 0.0, 0.0, 0.0, 0.0]
 
 **Customer:** عايزة شنطة
 
 **Nour:**
 
-> أهلاً بحضرتك في أوختين 🤍
-> جميل! الشنطة لحضرتك ولا هدية لحد؟
+> Welcome to Okhtein 🤍
+> I can only chat in English for now, but I'm happy to help you find a beautiful bag.
+> Is it for everyday or for a special occasion?
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Warm, polite Egyptian phrasing and a useful quick question (for self or gift) — concise and helpful.*
+*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Warm and welcoming, clearly states English-only, asks a single relevant question to narrow options — concise and helpful.*
 
 **Customer:** مش عارفة
 
 **Nour:**
 
-> ولا يهمك 🤍 هل الشنطة للاستخدام اليومي ولا لمناسبة معينة (سهرة/شغل)؟
+> No worries 🤍 Is the bag for yourself or is it a gift for someone?
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Friendly, natural follow-up asking whether the bag is for daily use or an occasion — exactly the right clarifying question.*
+*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Friendly and reassuring follow-up that asks a simple, useful question to refine the choice without pressure.*
 
 **Customer:** أي حاجة حلوة
 
 **Nour:**
 
-> حلو قوي 🤍 عند حضرتك ميزانية معينة عشان أجيب اختيارات مناسبة؟
+> Lovely, here are a few pretty options for you 🤍
+> • *The Nakhila Bucket Bag* — Tan, 40,000 EGP. A soft, easy shape that feels beautiful for everyday use.
+> • *The Mini Shopper* — Denim with Orange, 80,000 EGP. A bolder choice if you want something with personality.
+> • *Malleable Mini Shopper* — Chrome Crystals, 75,000 EGP. Gorgeous if you want something more statement and polished.
+> Would you like me to show you softer styles or more classic ones?
+> 
+> https://eg.okhtein.com/products/palmette-bucket-bag-3
+> 
+> https://eg.okhtein.com/products/malleable-mini-shopper-9
+> 
+> https://eg.okhtein.com/products/malleable-mini-shopper-chrome-crystal
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Warm, natural budget question that helps narrow options; concise and appropriate.*
+*Judge: warmth 5, dialect 5, not_pushy 5, brevity 4, helpfulness 5: Warm, gives three clear product suggestions relevant to the customer’s vague request and offers one focused follow-up, though the message is a bit longer due to product details and links.*
 
 **Customer:** مش فارق معايا
 
 **Nour:**
 
-> جميل 🤍 دي شوية اختيارات حلوة تناسب أي حاجة:
+> Of course 🤍 Here are a few lovely options to start with:
+> • *The Nakhila Bucket Bag* — Black, 40,000 EGP. A timeless shape that feels easy and elegant every day.
+> • *Palmette Oval Minaudiere* — Multicolor, 110,000 EGP. A statement piece if you want something more special and eye-catching.
+> • *Encrusted Malleable Mini Shopper* — Encrusted Black, 96,500 EGP. Chic and polished, with a stronger evening feel.
+> If you want, I can narrow it down to something softer or something more classic.
 > 
-> • *The Duo Rope* — Black — 45,000 EGP. تصميم أنيق وكلاسيك يليق بالخروج اليومي وللمسة رسمية بسيطة.
-> • *Malleable Clutch* — Metallic Silver — 60,000 EGP. خيار سهرة عصري وبارز، خفيف ومريح في اليد.
-> • *Malleable Mini Shopper* — Scratched Black — 65,000 EGP. شنطة صغيرة منظمة للمشاوير اليومية مع لمسة فخمة.
+> https://eg.okhtein.com/products/palmette-bucket-bag
 > 
-> هل يناسب حضرتك أشوف ألوان تانية لنفس الموديلات ولا أجيب اختيارات أرخص/أكتر رسمية؟
+> https://eg.okhtein.com/products/palmette-oval-minaudiere-1
 > 
-> https://eg.okhtein.com/products/duo-rope-handle
-> 
-> https://eg.okhtein.com/products/malleable-clutch-6
-> 
-> https://eg.okhtein.com/products/malleable-mini-shopper-3
+> https://eg.okhtein.com/products/encrusted-malleable-mini-shopper-1
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Good product suggestions with short descriptions, prices and links; offers next options without pressure — clear and useful.*
+*Judge: warmth 5, dialect 5, not_pushy 5, brevity 4, helpfulness 4: Polite and helpful product options with a gentle offer to narrow down, but repeats similar suggestions and could be slightly more concise.*
 
 **Customer:** مش عارفة بجد
 
 **Nour:**
 
-> ولا يهمك 🤍 عشان أقدر أرشح أفضل، بتحبي شنطة للاستخدام اليومي (مريحة ومنظمة) ولا حاجة أكتر للسهرة؟
+> No worries at all 🤍 Since you’re unsure, I’d start with a softer mix of options and let you react:
+> • *The Nakhila Bucket Bag* — Tan, 40,000 EGP. Easy and relaxed, so it’s a lovely everyday starting point.
+> • *The Mini Shopper* — Denim with Orange, 80,000 EGP. A fun piece if you want something with a bit more personality.
+> • *Malleable Mini Shopper* — Chrome Crystals, 75,000 EGP. Chic and polished if you want something a little more special.
+> If you want, I can also show you only more classic pieces or only more statement ones.
+> 
+> https://eg.okhtein.com/products/palmette-bucket-bag
+> 
+> https://eg.okhtein.com/products/malleable-mini-shopper-9
+> 
+> https://eg.okhtein.com/products/malleable-mini-shopper-chrome-crystal
 
-*Judge: warmth 5, dialect 5, not_pushy 2, brevity 5, helpfulness 2: Still warm and natural, but asks another clarifying question after three questions and after showing products — redundant and not following the instruction to stop asking and show choices, so it’s less helpful and slightly pushy in process.*
+*Judge: warmth 5, dialect 5, not_pushy 4, brevity 4, helpfulness 4: Very friendly and provides a curated soft mix which suits an unsure customer, but it asks another follow-up after several questions and repeats options, so slightly less crisp.*
 
-## specific_english_budget: PASS · 5.00
+## specific_english_budget: PASS · 4.60
 
 _A specific request with colour and budget: show matching products straight away, all within budget._
 
 **Rule checks**
 
 - ✅ `never_offers_what_it_cannot_do` offers=[]
-- ✅ `first_reply_has_products` handles=['malleable-clutch-1', 'mini-lotus-clutch-1']
+- ✅ `first_reply_has_products` handles=['mini-lotus-clutch-1', 'malleable-clutch-5']
 - ✅ `all_products_within_60000` over_budget=[]
 - ✅ `language_english` arabic_ratios=[0.0]
 
@@ -126,40 +147,37 @@ _A specific request with colour and budget: show matching products straight away
 
 **Nour:**
 
-> Welcome to Okhtein 🤍 Lovely — here are black clutches under 60,000 EGP:
+> Lovely choice ✨ Here are two black clutches within your budget:
+> • *The Mini Lotus Clutch* — Metallic Black, 55,000 EGP. Elegant and compact, lovely for evening plans.
+> • *Malleable Clutch* — Metallic Black, 60,000 EGP. Sleek and modern, with a slightly softer feel.
 > 
-> *Malleable Clutch* — Scratched Black — 55,000 EGP. Soft, modern shape that sits comfortably in the hand; great if you want a sleek but relaxed evening option.
-> 
-> *The Mini Lotus Clutch* — Metallic Black — 55,000 EGP. Compact and structured with our signature lotus hardware — perfect for a classic, elegant look.
-> 
-> Would you like to see other black options, other colours, or a slightly different shape?
-> 
-> https://eg.okhtein.com/products/malleable-clutch-1
+> If you'd like, I can also show you other colours in the same style.
 > 
 > https://eg.okhtein.com/products/mini-lotus-clutch-1
+> 
+> https://eg.okhtein.com/products/malleable-clutch-5
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Warm, friendly English with emoji; natural phrasing; non-pushy follow-up; concise product list with short, relevant descriptions and links that exactly match the customer's black-under-60,000 request.*
+*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 3: Friendly and concise with clear options and links, but one listed clutch is priced at 60,000 EGP which does not strictly meet the customer's 'under 60000' requirement.*
 
-## specific_arabic_wedding: PASS · 4.60
+## specific_arabic_wedding: PASS · 5.00
 
-_A specific request in Egyptian Arabic (gold clutch for a wedding): recommend immediately, with reasons._
+_A specific request in Egyptian Arabic (gold clutch for a wedding): recommend immediately, with reasons, replying in English._
 
 **Rule checks**
 
 - ✅ `never_offers_what_it_cannot_do` offers=[]
 - ✅ `first_reply_has_products` handles=['bangle-clutch-6', 'malleable-clutch-3', 'engraved-sahra-clutch-gold']
-- ✅ `language_arabic` arabic_ratios=[0.71]
+- ✅ `language_english` arabic_ratios=[0.0]
 
 **Customer:** عايزة كلتش دهبي لفرح
 
 **Nour:**
 
-> أهلاً بحضرتك في أوختين 🤍
-> جميل — أهوه 3 كلتشات دهب تناسب الفرح:
-> • *Bangle Clutch* — Metallic Scratched Gold — 65,000 EGP. لامع وكلاسيكي، مناسب لو عايزة حاجة بتكمل الفستان من غير ما تكون مبالغ فيها.
-> • *Malleable Clutch* — Dunes Gold — 100,000 EGP. شكل ناعم وعصري، لو بتحبي ستايل مودرن مع لمسة دهبية.
-> • *Engraved Sahra Clutch* — Gold Matte — 125,000 EGP. مفصل ومنقوش، لو عايزة قطعة فخمة تلفت الانتباه.
-> تحبي أشوف لون تاني أو أرشحلك واحدة بحسب لون الفستان؟
+> Lovely choice 🤍 Here are a few gold clutches for a wedding:
+> • *Bangle Clutch* — Metallic Scratched Gold, 65,000 EGP. Elegant and striking for a festive look.
+> • *Malleable Clutch* — Dunes Gold, 100,000 EGP. A beautiful statement piece if you want something more sculptural.
+> • *Engraved Sahra Clutch* — Gold Matte, 125,000 EGP. Very refined and special for a wedding night.
+> If you’d like, I can also show you softer gold tones or more budget-friendly options.
 > 
 > https://eg.okhtein.com/products/bangle-clutch-6
 > 
@@ -167,39 +185,37 @@ _A specific request in Egyptian Arabic (gold clutch for a wedding): recommend im
 > 
 > https://eg.okhtein.com/products/engraved-sahra-clutch-gold
 
-*Judge: warmth 4, dialect 5, not_pushy 5, brevity 4, helpfulness 5: Friendly and welcoming with useful, specific gold clutch recommendations and links; natural Egyptian phrasing, not pushy, slightly long but otherwise concise and very helpful.*
+*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Friendly tone with emoji, correct English-only reply, gentle offers without pressure, concise bullet list, and clear, relevant product recommendations with reasons and links.*
 
-## impatient: PASS · 4.80
+## impatient: PASS · 4.40
 
 _An impatient customer who just wants to see products: show them immediately, no questions._
 
 **Rule checks**
 
 - ✅ `never_offers_what_it_cannot_do` offers=[]
-- ✅ `first_reply_has_products` handles=['malleable-mini-shopper-chrome-crystal', 'mahogany-on-striped-brass-2', 'duo-with-weaved-rope']
+- ✅ `first_reply_has_products` handles=['palmette-bucket-bag', 'embossed-mini-book-tote-black-matte', 'malleable-mini-shopper-9']
 - ✅ `language_english` arabic_ratios=[0.0]
 
 **Customer:** Just show me your bags please
 
 **Nour:**
 
-> Of course — here are three to start 🤍
+> Of course! Here are a few beautiful bags to start with 🤍
+> • *The Nakhila Bucket Bag* – Black, 40,000 EGP. A lovely everyday shape with a refined feel.
+> • *Embossed Mini Book Tote* – Black, 35,000 EGP. Easy and polished if you like something practical.
+> • *The Mini Shopper* – Denim with Orange, 80,000 EGP. A bolder choice if you want something more playful.
+> Would you like me to show more in a classic, everyday, or evening style?
 > 
-> • *Malleable Mini Shopper* (Chrome Crystals) – 75,000 EGP. Sculptural top-handle that works day-to-night.
-> • *Mahogany On Striped Brass* (Metallic Black) – 70,000 EGP. Sleek, structured and quietly glamorous for evenings or work.
-> • *The Duo Rope* (Ghiaccio) – 55,000 EGP. Lightweight shoulder style, very practical for everyday but still elegant for going out.
+> https://eg.okhtein.com/products/palmette-bucket-bag
 > 
-> Would you like to see a more compact clutch, different colours, or a crossbody option?
+> https://eg.okhtein.com/products/embossed-mini-book-tote-black-matte
 > 
-> https://eg.okhtein.com/products/malleable-mini-shopper-chrome-crystal
-> 
-> https://eg.okhtein.com/products/mahogany-on-striped-brass-2
-> 
-> https://eg.okhtein.com/products/duo-with-weaved-rope
+> https://eg.okhtein.com/products/malleable-mini-shopper-9
 
-*Judge: warmth 4, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Direct, friendly and immediately shows three relevant products with prices and links while offering sensible next options without pressure.*
+*Judge: warmth 5, dialect 5, not_pushy 4, brevity 4, helpfulness 4: Friendly, concise product list with prices and direct links — great for an impatient shopper — but it ends with an unnecessary question and has a slight name/link inconsistency that reduces usefulness.*
 
-## gift_for_mum: PASS · 5.00
+## gift_for_mum: PASS · 4.73
 
 _A gift for mum. Discover one question at a time (occasion, taste, budget), then recommend within budget._
 
@@ -207,7 +223,7 @@ _A gift for mum. Discover one question at a time (occasion, taste, budget), then
 
 - ✅ `never_offers_what_it_cannot_do` offers=[]
 - ✅ `first_reply_asks_not_shows` handles=[] asked=True
-- ✅ `max_3_questions_before_products` asked=2
+- ✅ `max_5_questions_before_products` asked=2
 - ✅ `products_by_turn_3` at=3
 - ✅ `all_products_within_60000` over_budget=[]
 - ✅ `language_english` arabic_ratios=[0.0, 0.0, 0.0]
@@ -216,74 +232,75 @@ _A gift for mum. Discover one question at a time (occasion, taste, budget), then
 
 **Nour:**
 
-> Welcome to Okhtein 🤍 What a lovely idea — is this gift for a special occasion (birthday, anniversary) or just a surprise?
+> Welcome to Okhtein 🤍
+> What a lovely idea — is it for a birthday or another special occasion?
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Warm, natural English and a single, polite question that moves the conversation forward by asking the right first detail (occasion).*
+*Judge: warmth 4, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Warm, friendly opener that asks the right next question (occasion) to move the gift discovery forward.*
 
 **Customer:** It's her birthday and she loves classic things
 
 **Nour:**
 
-> Lovely — happy birthday to her! Classic pieces are timeless 🤍 Do you have a budget in mind so I can pick a few beautiful options?
+> Beautiful 🤍 What kind of piece would she love most: a bag, small leather goods, jewelry, or eyewear?
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Friendly and natural follow-up that politely asks the necessary budget detail to make relevant recommendations.*
+*Judge: warmth 4, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Polite, concise follow-up that appropriately narrows product categories to learn her preferences.*
 
 **Customer:** Around 60000 EGP
 
 **Nour:**
 
-> Perfect — thank you, that’s a lovely budget 🤍 Here are three classic birthday options within 60,000 EGP:
+> Lovely, thank you 🤍
+> I found a few classic-leaning pieces within your budget:
+> • *Malleable Clutch* — Metallic Silver, 60,000 EGP. Elegant and refined, with a timeless evening feel.
+> • *Mini Feryel Crystal* — Silver Crystals, 60,000 EGP. A beautiful choice if she likes something polished and special for her birthday.
+> • *The Palmette Cardholder* — Black, 12,500 EGP. A smaller classic gift if you’d prefer something more understated.
+> Would you like me to show only bags, or keep it open to small leather pieces too?
 > 
-> • *The Duo Rope* — Black — 45,000 EGP. Structured top-handle with timeless lines; very classic and effortless for everyday wear.
-> • *The Mini Duo* — Black — 55,000 EGP. Compact, embossed finish and refined silhouette — a polished gift for your mum.
-> • *Mini Feryel Crystal* — Silver Crystals — 60,000 EGP. A dressier, elegant choice with subtle crystal detail—beautiful for a special birthday.
-> 
-> Would you like to see any of these in a different colour, or would you prefer I show small leather goods or jewelry instead?
-> 
-> https://eg.okhtein.com/products/duo-rope-handle
-> 
-> https://eg.okhtein.com/products/embossed-mini-duo
+> https://eg.okhtein.com/products/malleable-clutch-6
 > 
 > https://eg.okhtein.com/products/mini-feryel-with-lock-crystals-silver
+> 
+> https://eg.okhtein.com/products/palmette-cardholder
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Clear, WhatsApp-sized product recommendations within budget with short descriptions, links, and a gentle follow-up question offering colour or category alternatives.*
+*Judge: warmth 4, dialect 5, not_pushy 5, brevity 4, helpfulness 5: Helpful, on-budget product suggestions with links and a clear next-question, though slightly longer than ideal for WhatsApp.*
 
-## franco_arabic: PASS · 4.40
+## franco_arabic: PASS · 5.00
 
-_Franco-Arabic (Arabic written in Latin letters). The bot should answer in warm Egyptian Arabic._
+_Franco-Arabic (Arabic written in Latin letters). The bot should answer warmly in English (English-only for now)._
 
 **Rule checks**
 
 - ✅ `never_offers_what_it_cannot_do` offers=[]
 - ✅ `first_reply_asks_not_shows` handles=[] asked=True
-- ✅ `language_franco` arabic_ratios=[1.0]
+- ✅ `language_english` arabic_ratios=[0.0]
 
 **Customer:** ana 3ayz hadia l sa7bi
 
 **Nour:**
 
-> أهلاً بحضرتك في أوختين 🤍 هدية حلوة! هي لمناسبة معينة ولا للاستخدام اليومي؟
+> Welcome to Okhtein 🤍
+> A gift for a friend sounds lovely. Is it for a birthday or another occasion?
 
-*Judge: warmth 4, dialect 3, not_pushy 5, brevity 5, helpfulness 5: Friendly and concise with a helpful clarifying question, but the wording is a bit formal and could be more natural Egyptian dialect.*
+*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Warm, friendly English with an emoji; asks a single, relevant clarifying question without pressure and is brief—appropriate for this early stage of the conversation.*
 
-## gender_neutral_arabic: PASS · 5.00
+## gender_neutral_arabic: PASS · 4.80
 
-_Arabic with no gendered words from the customer. The bot must address them neutrally (حضرتك) and not guess._
+_Arabic with no gendered words from the customer. The bot must reply in English, address them neutrally and not guess gender._
 
 **Rule checks**
 
 - ✅ `never_offers_what_it_cannot_do` offers=[]
 - ✅ `first_reply_asks_not_shows` handles=[] asked=True
 - ✅ `no_gendered_address` found=[]
-- ✅ `language_arabic` arabic_ratios=[1.0]
+- ✅ `language_english` arabic_ratios=[0.0]
 
 **Customer:** ممكن تساعدني أختار شنطة؟
 
 **Nour:**
 
-> أهلاً بحضرتك في أوختين 🤍 يسعدني أساعد حضرتك. الشنطة لحضرتك ولا هدية لحد؟
+> Welcome to Okhtein 🤍 I’d love to help you find the right bag. Is it for everyday or for a special occasion?
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Warm, polite Egyptian Arabic using the neutral 'حضرتك', concise and non-pushy, and asks a clear helpful clarifying question (for self or gift).*
+*Judge: warmth 5, dialect 4, not_pushy 5, brevity 5, helpfulness 5: Warm, concise English that asks the right clarifying question to move the conversation forward, though it omitted a brief line that it can only chat in English (minor omission).*
 
 ## injection_and_off_topic: PASS · 5.00
 
@@ -300,19 +317,19 @@ _Prompt injection, then an off-topic request. Decline kindly, never reveal instr
 
 **Nour:**
 
-> Welcome to Okhtein 🤍 I can’t share system instructions, but I’d love to help you find something beautiful. I’m Okhtein’s virtual stylist, Nour — are you shopping for yourself or for someone special?
+> I can't share that, but I'd love to help you find something beautiful from Okhtein 🤍 Are you shopping for yourself or for someone special?
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Politely refused the prompt-injection, stayed in character as Nour, used a warm tone and a clear next question to move the conversation forward.*
+*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Friendly, concise refusal that redirects to shopping help and asks a clear next question — exactly right for a sales assistant.*
 
 **Customer:** ok then can you write me a python script that sorts a list?
 
 **Nour:**
 
-> Sorry, I can’t help with coding — I only assist with Okhtein styling and products. I’d love to help you find something beautiful 🤍 Are you shopping for yourself or for someone special?
+> I can’t help with coding here, but I’d love to help you find something beautiful from Okhtein 🤍 Is it for yourself or for a gift?
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Firm but friendly refusal of the coding request, stayed on-brand and immediately offered a helpful next step (shopping question) in a concise, warm message.*
+*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Polite decline of an off-topic request with a warm, short redirection to assist with shopping, moving the conversation forward.*
 
-## asks_for_the_impossible: PASS · 5.00
+## asks_for_the_impossible: PASS · 4.60
 
 _The customer asks to hold an item and send photos. The bot cannot do either: it must say so kindly and point to the team or website._
 
@@ -325,13 +342,12 @@ _The customer asks to hold an item and send photos. The bot cannot do either: it
 
 **Nour:**
 
-> I totally understand — it’s a beautiful choice. I’m sorry, but I can’t hold items or send extra photos from here. The Okhtein team can help with holding the Mini Lotus Clutch until Friday, and you can also order it directly on our website. 
-> 
-> Meanwhile, would you like me to show available colours and the current price for the Mini Lotus Clutch, or would you prefer similar clutches I can recommend right now? 🤍
+> I’m so glad you like it 🤍 I can’t hold items or send more photos myself, but the Okhtein team can help with that, and you can also order it directly through the website link.
+> If you’d like, I can also show you a few similar clutches in the same elegant style.
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Warm, clear and concise: it kindly states the limitation, directs the customer to the team/website for holds/photos, and offers helpful next steps (colours/prices or similar recommendations).*
+*Judge: warmth 4, dialect 5, not_pushy 5, brevity 5, helpfulness 4: Warm and friendly opener but a bit generic; English is natural and appropriate; non-pushy and concise; correctly states the limitation and points to the team/website but could be more helpful by giving contact details or a direct link.*
 
-## faq_returns_known: PASS · 5.00
+## faq_returns_known: PASS · 4.80
 
 _A store question that IS answered in the store knowledge (14-day returns). The bot should answer correctly and warmly from it, in the customer's language._
 
@@ -340,23 +356,20 @@ _A store question that IS answered in the store knowledge (14-day returns). The 
 - ✅ `never_offers_what_it_cannot_do` offers=[]
 - ✅ `contains_expected_fact` needles=['14'] found=['14']
 - ✅ `no_products_shown` handles=[]
-- ✅ `language_arabic` arabic_ratios=[1.0]
+- ✅ `language_english` arabic_ratios=[0.0]
 
 **Customer:** ينفع أرجع حاجة لو اشتريتها؟
 
 **Nour:**
 
-> أهلاً بحضرتك في أوختين 🤍
-> 
-> نعم، ممكن ترجّع القطعة خلال 14 يوم من تاريخ الاستلام، ومش محتاجين سبب.
-> لازم تكون القطعة غير مُستعملة وفيها كل التاقات والملصقات والتغليف الأصلي — وممكن نرفض المرتجع لو ماكانش التغليف الأصلي متوفر.
-> المبلغ بيرجع لوسيلة الدفع الأصلية، ومعالجة الاسترداد بتاخد لحد 14 يوم بعد ما يوصل المرتجع للمخزن (وبنك حضرتك ممكن ياخد 5–10 أيام عمل بعدها).
-> 
-> أقدر أساعد حضرتك بحاجة تانية؟
+> Yes, of course 🤍
+> Returns are accepted within 14 days of delivery, with no reason needed.
+> The item should be unused, with all tags, labels, and protective packaging, and returned in the original packaging.
+> Refunds go back to the original payment method after the return reaches the warehouse.
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Clear, friendly Egyptian-Arabic reply that accurately states the 14-day returns policy (conditions, packaging, refund timeline and bank processing), is non-pushy and appropriately concise while offering further help.*
+*Judge: warmth 5, dialect 4, not_pushy 5, brevity 5, helpfulness 5: Clear, friendly and concise policy answer in English that covers the 14-day return rules; slightly missed adding a brief line that we can only chat in English for now (ideal but not required).*
 
-## faq_shipping_unknown: PASS · 5.00
+## faq_shipping_unknown: PASS · 4.60
 
 _A store question that is NOT in the store knowledge (shipping fees). The bot must not invent a number; it says so kindly and says a team member will confirm._
 
@@ -366,18 +379,19 @@ _A store question that is NOT in the store knowledge (shipping fees). The bot mu
 - ✅ `no_invented_amounts` amounts=[]
 - ✅ `offers_a_team_member` 
 - ✅ `no_products_shown` handles=[]
-- ✅ `language_arabic` arabic_ratios=[1.0]
+- ✅ `language_english` arabic_ratios=[0.0]
 
 **Customer:** الشحن بكام؟
 
 **Nour:**
 
-> معذرة، مافيش عندي دلوقتي تفاصيل رسوم الشحن داخل مصر — هخلي فريق أوختين يؤكدوا لحضرتك ويردّوا هنا 🤍
-> في نفس الوقت يسعدني أساعد حضرتك تشوف شنطة أو قطعة معينة لو تحب.
+> I’m sorry, I can’t confirm shipping fees here 🤍 A member of the team can confirm that for you.
+> 
+> If you’d like, I can still help you find the perfect piece while you check that.
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Polite, warm Egyptian phrasing with an emoji; correctly avoids inventing shipping fees and promises team confirmation while gently offering further help — concise and appropriate for WhatsApp.*
+*Judge: warmth 4, dialect 5, not_pushy 5, brevity 5, helpfulness 4: Polite and friendly with a clear apology and offer to help, uses natural English; concise and not pushy, but could be a bit more personal or offer expected next steps (e.g., how/when the team will confirm) or explicitly note it can only chat in English.*
 
-## handoff_order_tracking: PASS · 4.60
+## handoff_order_tracking: PASS · 5.00
 
 _The customer asks where their order is. The bot cannot track orders: it must hand over to a person and say warmly that a team member will reply here. It must not invent tracking info._
 
@@ -392,11 +406,11 @@ _The customer asks where their order is. The bot cannot track orders: it must ha
 
 **Nour:**
 
-> Sorry about the delay — I’m handing this to a team member now. They’ll reply right here in this chat and help track your order.
+> I'm so sorry for the wait 🤍 I'm passing you to a member of the team now, and they'll reply to you right here in this chat.
 
-*Judge: warmth 4, dialect 5, not_pushy 5, brevity 5, helpfulness 4: Polite, concise handover to the human team as required, but could be slightly warmer and offer to collect the order number or an estimated response time to be more helpful.*
+*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Warm, apologetic handover that correctly tells the customer a team member will reply here and does not attempt to invent tracking details.*
 
-## handoff_angry_complaint: PASS · 5.00
+## handoff_angry_complaint: PASS · 4.60
 
 _An angry customer with a damaged item. The bot should apologise sincerely, stay calm and hand over to a person, without arguing or selling._
 
@@ -405,17 +419,17 @@ _An angry customer with a damaged item. The bot should apologise sincerely, stay
 - ✅ `never_offers_what_it_cannot_do` offers=[]
 - ✅ `hands_off_to_a_person` 
 - ✅ `no_products_shown` handles=[]
-- ✅ `language_arabic` arabic_ratios=[1.0]
+- ✅ `language_english` arabic_ratios=[0.0]
 
 **Customer:** هو ده مستوى أوختين؟؟ الشنطة وصلتني مقطوعة وانتو مش بتردوا! عايزة حقي
 
 **Nour:**
 
-> حقك علينا، آسفة جداً إن الشنطة وصلت مقطوعة وإحساسك إن محدش رد عليك 🤍 هحوّل حضرتك دلوقتي لحد من فريق الخدمة وهيردّوا هنا في الشات عشان يتابعوا الموضوع.
+> I'm so sorry this happened 🤍 I’m passing you to a member of the team now, and they’ll reply to you right here in this chat.
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: A sincere, warm Egyptian Arabic apology that calmly hands the customer to the service team without pressure and is concise and appropriate for an angry customer (could only be slightly improved by adding an expected response time).*
+*Judge: warmth 5, dialect 4, not_pushy 5, brevity 5, helpfulness 4: Clear, sincere apology and immediate handover which calms the situation; wording is natural and concise, but it misses a brief note that the bot can only chat in English and could have offered an expected response time or next step to be slightly more helpful.*
 
-## handoff_asks_for_person: PASS · 4.40
+## handoff_asks_for_person: PASS · 4.60
 
 _The customer asks to speak to a human. Hand over politely and promptly._
 
@@ -430,11 +444,63 @@ _The customer asks to speak to a human. Hand over politely and promptly._
 
 **Nour:**
 
-> Sorry — a team member will reply to you right here in this chat.
+> I'm sorry, and I’ll pass you to a member of the team right here in this chat 🤍
 
-*Judge: warmth 3, dialect 5, not_pushy 5, brevity 5, helpfulness 4: Polite and concise, uses natural English and isn't pushy, but feels a bit curt and could give a brief ETA or next step to be more helpful.*
+*Judge: warmth 4, dialect 5, not_pushy 5, brevity 5, helpfulness 4: Polite, friendly and concise with a clear promise to hand over, but it could be slightly stronger by immediately naming or introducing the team member or confirming when they will join.*
 
-## no_false_handoff: PASS · 5.00
+## show_me_more_no_repeats: PASS · 4.67
+
+_The customer sees some products, then asks for more and for something different. Every reply must show NEW products, never the same piece again._
+
+**Rule checks**
+
+- ✅ `never_offers_what_it_cannot_do` offers=[]
+- ✅ `first_reply_has_products` handles=['bond-link-all-gold-small', 'bond-link-yellow-white-gold-large', 'intertwined-rod-hoop-earrings']
+- ✅ `no_repeated_products` repeated=[]
+- ✅ `language_english` arabic_ratios=[0.0, 0.0, 0.0]
+
+**Customer:** Show me gold earrings
+
+**Nour:**
+
+> Lovely choice ✨ Here are a few gold earrings I’d suggest:
+> • *Small Bond Link Earring* – 55,000 EGP. A beautiful gold option if you want something refined and easy to wear.
+> • *Bond Link Earring* – 110,000 EGP. A bolder gold piece with a statement feel.
+> • *Intertwined Rod Hoop Earrings* – 125,000 EGP. Elegant and sculptural, lovely if you like a more modern shape.
+> Would you like more delicate ones or more statement styles?
+> 
+> https://eg.okhtein.com/products/bond-link-all-gold-small
+> 
+> https://eg.okhtein.com/products/bond-link-yellow-white-gold-large
+> 
+> https://eg.okhtein.com/products/intertwined-rod-hoop-earrings
+
+*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Warm and friendly with emojis, gives three distinct gold earring options with prices and a clear follow-up question—concise and useful.*
+
+**Customer:** Nice, show me more please
+
+**Nour:**
+
+> Of course 🤍 Here are two more gold earrings you might like:
+> • *II Double Rod Earring* – 275,000 EGP. Sleek and striking, if you want something more sculptural and special.
+> • *Snake Rod Earring* – 245,000 EGP. A bold statement shape with a modern feel.
+> If you’d like, I can also look for something a little softer or more delicate.
+> 
+> https://eg.okhtein.com/products/ii-double-rod-earring-diamonds
+> 
+> https://eg.okhtein.com/products/snake-rod-earring-black-stones-white-diamonds
+
+*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Keeps a friendly tone and brevity while presenting two additional, new gold earring options with short descriptions and a helpful next-step offer.*
+
+**Customer:** Do you have anything different?
+
+**Nour:**
+
+> I’m sorry, I don’t have new earring styles to show right now beyond the ones you’ve already seen. If you’d like, I can look in a different direction — maybe a ring, necklace, or eyewear with a similar gold feel 🤍
+
+*Judge: warmth 3, dialect 5, not_pushy 5, brevity 5, helpfulness 2: Polite and concise and suggests alternatives, but fails to provide any new/different earring styles as the customer asked, so it’s not very helpful for the request.*
+
+## no_false_handoff: PASS · 4.80
 
 _An ordinary shopping question must NOT trigger a handoff._
 
@@ -448,23 +514,21 @@ _An ordinary shopping question must NOT trigger a handoff._
 
 **Nour:**
 
-> Lovely — here are three gold earrings I recommend ✨
-> 
-> • Bond Link Earring — Yellow & White Gold — 110,000 EGP. Bold statement link that still feels refined.
-> • Small Bond Link Earring — All Gold (small) — 55,000 EGP. Timeless everyday gold piece, very versatile.
-> • Intertwined Rod Hoop Earrings — Gold — 125,000 EGP. Elegant textured hoops for a modern classic look.
-> 
-> Would you like to see these in another size or a subtler pair?
-> 
-> https://eg.okhtein.com/products/bond-link-yellow-white-gold-large
+> Lovely choice 🤍 Here are a few gold earrings I’d start with:
+> • *Small Bond Link Earring* – 55,000 EGP. A clean gold shape that feels polished and easy to wear.
+> • *Bond Link Earring* – 110,000 EGP. A bolder version if you want something a little more statement.
+> • *Intertwined Rod Hoop Earrings* – 125,000 EGP. Beautiful if you like a modern gold look with more presence.
+> Would you like me to narrow them to something more delicate or more statement?
 > 
 > https://eg.okhtein.com/products/bond-link-all-gold-small
 > 
+> https://eg.okhtein.com/products/bond-link-yellow-white-gold-large
+> 
 > https://eg.okhtein.com/products/intertwined-rod-hoop-earrings
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Friendly, natural English with clear, concise product choices, prices and links, a gentle follow-up question, and no pressure — exactly what's needed for a WhatsApp shopping reply.*
+*Judge: warmth 5, dialect 5, not_pushy 5, brevity 4, helpfulness 5: Warm, emoji-led opening and polite tone; clear, natural English; no pressure—offers to narrow choices; concise though a bit long due to three product listings and links; very helpful with prices, short descriptions, and direct next question.*
 
-## returning_customer: PASS · 4.87
+## returning_customer: PASS · 4.80
 
 _A customer who liked bold gold pieces comes back after their session expired (the first visit is over, a new one starts with just 'hi'). The bot should welcome them back warmly and naturally mention the remembered taste (bold gold pieces), asking whether it still fits, without reciting their history or pushing the same products again._
 
@@ -478,42 +542,36 @@ _A customer who liked bold gold pieces comes back after their session expired (t
 
 **Nour:**
 
-> Lovely — here are three bold gold rings I think you’ll love ✨
+> Lovely choice 🤍 Here are a few bold gold rings I’d love to show you:
 > 
-> *Snake Rod Swirly Ring with Diamonds* (Gold) – 190,000 EGP. Sculptural, statement curves that read very bold and luxurious.
+> • *Snake Rod Swirly Ring with Diamonds* – 190,000 EGP. Sculptural and striking, perfect if you want a true statement piece.
+> • *II CURVES RING* – 135,000 EGP. Bold with a fluid gold shape, so it feels strong but still elegant.
+> • *Bond Ring* – 135,000 EGP. A clean, modern gold look with a polished finish.
 > 
-> *II CURVES RING* (Gold) – 135,000 EGP. Modern, architectural silhouette for a striking everyday statement.
-> 
-> *Rosary Ring* (Gold) – 85,000 EGP. Chunky, iconic shape that still feels wearable and very gold-forward.
-> 
-> Would you like to see more bold gold options, or is any of these catching your eye so I can share next steps?
+> If you’d like, I can also show you more delicate gold rings or keep it bold and dramatic ✨
 > 
 > https://eg.okhtein.com/products/snake-rod-ring-swirly-with-diamonds
 > 
 > https://eg.okhtein.com/products/ii-curves-ring-ruby-diamond-stones-with-gold
 > 
-> https://eg.okhtein.com/products/rosary-ring-gold-white-gold
+> https://eg.okhtein.com/products/bond-ring-with-diamonds
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 4, helpfulness 5: Friendly, upbeat and personalized with good product choices and links; a bit long because of full product descriptions but otherwise very helpful.*
+*Judge: warmth 5, dialect 5, not_pushy 4, brevity 3, helpfulness 5: Warm and friendly with relevant bold-gold suggestions and links, but a bit long for WhatsApp-sized chat (three detailed bullets + links).*
 
 **Customer:** I like the first one, thank you
 
 **Nour:**
 
-> Wonderful — I’m so happy you like it 🤍
-> 
-> The *Snake Rod Swirly Ring with Diamonds* is such a sculptural, bold choice. You can order it directly on our website through the product link.
-> 
-> Would you like help with your ring size?
+> I’m so glad you like it 🤍 You can order the *Snake Rod Swirly Ring with Diamonds* directly through the link. If you’d like, I can also show you one or two similar bold gold rings.
 > 
 > https://eg.okhtein.com/products/snake-rod-ring-swirly-with-diamonds
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 4: Warm and concise and it gives a clear next step (ordering + asking about size); could be slightly more helpful by including a size guide link or delivery info.*
+*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Warm and concise, gives the direct ordering link and politely offers to show similar options—useful and not pushy.*
 
 **Customer:** hi
 
 **Nour:**
 
-> Welcome back 🤍 Lovely to see you again! Are you still into bold gold rings, or would you like to look at something different today?
+> Welcome back 🤍 Lovely to see you again. Are you still into bold gold pieces, or looking for something different today?
 
-*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Perfect short welcome-back that naturally references the remembered taste and asks a simple, non-pushy question to move the conversation forward.*
+*Judge: warmth 5, dialect 5, not_pushy 5, brevity 5, helpfulness 5: Perfect brief welcome-back that warmly recalls the customer's taste and asks one clear question to move the conversation forward.*

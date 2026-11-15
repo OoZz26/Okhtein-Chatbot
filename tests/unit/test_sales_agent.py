@@ -5,7 +5,7 @@ import pytest
 
 from app.domain.agent.sales_agent import SalesAgent, load_system_prompt
 from app.domain.errors import LLMError
-from app.domain.models import LLMResponse
+from app.domain.models import AgentContext, LLMResponse
 from app.domain.tools.base import ToolRegistry
 from tests.fakes import FakeLLM, InMemoryProducts, make_product, make_search_tool, tool_call
 
@@ -79,3 +79,56 @@ async def test_non_json_reply_raises_llm_error() -> None:
     llm = FakeLLM([LLMResponse("just text")])
     with pytest.raises(LLMError):
         await build_agent(llm).respond("hi")
+
+
+async def test_all_searches_of_one_round_are_answered_in_order() -> None:
+    llm = FakeLLM(
+        [
+            LLMResponse(tool_calls=(tool_call({"query": "a"}, "c1"), tool_call({"query": "b"}, "c2"))),
+            final("ok", []),
+        ]
+    )
+    await build_agent(llm).respond("hi")
+
+    tool_messages = [m for m in llm.calls[1] if m.role == "tool"]
+    assert [m.tool_call_id for m in tool_messages] == ["c1", "c2"]
+
+
+async def test_products_already_shown_are_flagged_and_named_in_the_session_notes() -> None:
+    llm = FakeLLM([LLMResponse(tool_calls=(tool_call({"query": "black clutch"}),)), final("ok", [])])
+    context = AgentContext(shown_products=("black-clutch",))
+
+    await build_agent(llm).respond("show me more", context=context)
+
+    system = llm.calls[0][0].content
+    assert "Products already shown in this chat: Black Clutch" in system
+    result = json.loads(llm.calls[1][-1].content)
+    assert result["results"][0]["already_shown"] is True
+
+
+async def test_nothing_is_flagged_when_nothing_was_shown() -> None:
+    llm = FakeLLM([LLMResponse(tool_calls=(tool_call({"query": "black clutch"}),)), final("ok", [])])
+
+    await build_agent(llm).respond("a black clutch")
+
+    assert "already_shown" not in llm.calls[1][-1].content
+    assert "Products already shown in this chat" not in llm.calls[0][0].content
+
+
+async def test_the_rule_for_this_reply_comes_right_after_the_customer_message() -> None:
+    llm = FakeLLM([final("Who is it for?", [])])
+
+    await build_agent(llm).respond("a gift", context=AgentContext(guidance="Ask about the occasion."))
+
+    *_, user, rule = llm.calls[0]
+    assert (user.role, user.content) == ("user", "a gift")
+    assert (rule.role, rule.content) == ("system", "Rule for this reply: Ask about the occasion.")
+    assert "Ask about the occasion." not in llm.calls[0][0].content  # not also buried in the prompt
+
+
+async def test_no_rule_message_when_there_is_no_rule() -> None:
+    llm = FakeLLM([final("Hi", [])])
+
+    await build_agent(llm).respond("hi")
+
+    assert llm.calls[0][-1].role == "user"

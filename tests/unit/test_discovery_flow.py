@@ -34,8 +34,11 @@ def build(llm: FakeLLM, sessions: InMemorySessionStore | None = None, max_questi
 
 
 def system_prompt_of_call(llm: FakeLLM, index: int) -> str:
-    """Only the per-turn 'Session notes' part of the system prompt (the static text mentions many words)."""
-    return llm.calls[index][0].content.split("## Session notes", 1)[1]
+    """Only the per-turn parts: the 'Session notes' of the system prompt (the static text mentions many
+    words) plus the 'Rule for this reply' message after the customer's message."""
+    first, *rest = llm.calls[index]
+    rules = [m.content for m in rest if m.role == "system"]
+    return "\n".join([first.content.split("## Session notes", 1)[1], *rules])
 
 
 async def test_profile_updates_persist_across_turns_and_reach_the_next_prompt() -> None:

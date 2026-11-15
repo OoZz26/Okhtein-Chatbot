@@ -13,7 +13,7 @@ choice is explained in [`docs/issues/`](docs/issues/README.md).
 
 | Customer says / does | The bot |
 |---|---|
-| "عايزة شنطة" (vague) | asks ONE friendly question, shows nothing yet; at most 3 questions, then recommends |
+| "عايزة شنطة" (vague) | asks ONE friendly question at a time (who for, occasion, type, colour/style, budget), shows nothing yet; at most 5 questions, then recommends |
 | "black clutch under 60000" (specific) | recommends 2-3 in-stock products within budget, each with a reason, as image cards |
 | "show me a cheaper one" | remembers the conversation (Redis, backed by Postgres) and adjusts |
 | "can I return an item?" | answers from `data/knowledge.md` only; unknown things ("shipping fee?") get "a team member will confirm" |
@@ -190,8 +190,8 @@ Everything is configured through environment variables / `.env`, read in exactly
 |---|---|
 | Runtime | `ENVIRONMENT` (development), `LOAD_TEST_MODE` (false; fakes the LLM and WhatsApp for load tests, **refused when `ENVIRONMENT=production`**) |
 | Store | `STORE_URL`, `STORE_CURRENCY` (EGP), `PRODUCTS_PATH`, `KNOWLEDGE_PATH` |
-| LLM | `OPENAI_API_KEY`, `OPENAI_MODEL` (gpt-5-mini), `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `OPENROUTER_BASE_URL`, `LLM_TIMEOUT_SECONDS` (45), `LLM_PROVIDER_ORDER` (openai,openrouter), `LLM_MAX_RETRIES` (2), `LLM_RETRY_BASE_DELAY_SECONDS` (0.5), `MAX_TOOL_ROUNDS` (5) |
-| Agent | `PROMPT_VERSION` (v2), `SEARCH_RESULT_LIMIT` (5), `MAX_DISCOVERY_QUESTIONS` (3), `EVAL_JUDGE_MODEL` |
+| LLM | `OPENAI_API_KEY`, `OPENAI_MODEL` (gpt-5.4-mini), `OPENAI_REASONING_EFFORT` (none), `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `OPENROUTER_BASE_URL`, `LLM_TIMEOUT_SECONDS` (45), `LLM_PROVIDER_ORDER` (openai,openrouter), `LLM_MAX_RETRIES` (2), `LLM_RETRY_BASE_DELAY_SECONDS` (0.5), `MAX_TOOL_ROUNDS` (2) |
+| Agent | `PROMPT_VERSION` (v4), `SEARCH_RESULT_LIMIT` (5), `MAX_DISCOVERY_QUESTIONS` (5), `SESSION_PRODUCTS_SHOWN_LIMIT` (30), `EVAL_JUDGE_MODEL` |
 | Search | `RETRIEVER` (hybrid: keyword / vector / hybrid), `EMBEDDING_MODEL` (text-embedding-3-small), `EMBEDDING_BATCH_SIZE` |
 | Redis | `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB` |
 | Postgres | `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` |

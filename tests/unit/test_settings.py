@@ -17,7 +17,7 @@ def test_defaults_match_the_agreed_behaviour(monkeypatch: pytest.MonkeyPatch) ->
     s = Settings()
     assert s.session_ttl_seconds == 24 * 60 * 60
     assert s.history_limit == 20
-    assert s.max_discovery_questions == 3
+    assert s.max_discovery_questions == 5
     assert s.redis_url == "redis://localhost:6379/0"
 
 

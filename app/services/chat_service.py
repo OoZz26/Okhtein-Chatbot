@@ -72,15 +72,17 @@ class ChatService:
             guidance=self._policy.guidance(state),
             returning_notes=returning.notes,
             welcome_back=returning.welcome_back,
+            shown_products=state.shown_products,
         )
         try:
             agent_reply = await self._agent.respond(text, history, context)
         except LLMError as exc:
             return await self._degrade(chat_id, state.stage, exc, started)
+        handles = self._policy.cards_to_send(state, agent_reply.product_handles)
         new_state = self._policy.update(state, agent_reply)
         await self._sessions.save(chat_id, new_state)
         await self._returning.remember(chat_id, new_state.profile, agent_reply.product_handles)
-        links = [self.product_link(handle) for handle in agent_reply.product_handles]
+        links = [self.product_link(handle) for handle in handles]
         reply = "\n\n".join([agent_reply.message, *links]) if links else agent_reply.message
         await self._memory.record(chat_id, ChatMessage("assistant", reply))
         handed_off = False
@@ -96,7 +98,7 @@ class ChatService:
         )
         return ChatResult(
             reply,
-            agent_reply.product_handles,
+            handles,
             links,
             new_state.stage,
             message=agent_reply.message,

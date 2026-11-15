@@ -8,7 +8,7 @@
     "checks": {
       "first_reply_no_products": true,
       "language": "english",
-      "max_questions_before_products": 3
+      "max_questions_before_products": 5
     }
   },
   {
@@ -23,7 +23,7 @@
     ],
     "checks": {
       "first_reply_no_products": true,
-      "max_questions_before_products": 3,
+      "max_questions_before_products": 5,
       "products_by_turn": 4,
       "language": "english"
     }
@@ -72,7 +72,7 @@
     ],
     "checks": {
       "first_reply_no_products": true,
-      "max_questions_before_products": 3,
+      "max_questions_before_products": 5,
       "products_by_turn": 3,
       "max_budget": {
         "amount": 60000,
@@ -187,6 +187,20 @@
     "checks": {
       "triggers_handoff": true,
       "no_products": true,
+      "language": "english"
+    }
+  },
+  {
+    "id": "show_me_more_no_repeats",
+    "description": "The customer sees some products, then asks for more and for something different. Every reply must show NEW products, never the same piece again.",
+    "turns": [
+      "Show me gold earrings",
+      "Nice, show me more please",
+      "Do you have anything different?"
+    ],
+    "checks": {
+      "first_reply_has_products": true,
+      "no_repeated_products": true,
       "language": "english"
     }
   },

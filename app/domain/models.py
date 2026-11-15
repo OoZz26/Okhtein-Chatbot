@@ -87,6 +87,7 @@ class AgentContext:
     guidance: str = ""
     returning_notes: str = ""  # what we remember from earlier visits
     welcome_back: bool = False  # this is a new session for a known customer
+    shown_products: tuple[str, ...] = ()  # handles already recommended this session
 
 
 @dataclass(frozen=True)

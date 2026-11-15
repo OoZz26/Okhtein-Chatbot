@@ -63,8 +63,8 @@ async def test_at_most_n_history_messages_reach_the_llm() -> None:
     for i in range(6):
         await service.handle_message(CHAT, f"question {i}")
 
-    last_call = llm.calls[-1]
-    history = last_call[1:-1]  # between the system prompt and the new user message
+    last_call = [m for m in llm.calls[-1] if m.role != "system"]  # drop the prompt and the turn's rule
+    history = last_call[:-1]  # everything before the new user message
     assert len(history) == 4
     assert history[-1].content == "answer 4"
 
@@ -93,4 +93,4 @@ async def test_a_new_session_starts_with_no_history() -> None:
     rig.clock.advance(hours=3)
     await service.handle_message(CHAT, "hi again")
 
-    assert [m.role for m in llm.calls[1]] == ["system", "user"]
+    assert [m.role for m in llm.calls[1] if m.role != "system"] == ["user"]  # no history at all
