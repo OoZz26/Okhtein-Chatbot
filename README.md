@@ -2,8 +2,8 @@
 
 A friendly AI stylist ("Nour") that chats with customers of [Okhtein](https://eg.okhtein.com) (Egyptian luxury
 accessories) on WhatsApp. She finds out what the customer wants, one warm question at a time, and sends real
-product recommendations as picture cards with the correct links. She replies in Egyptian Arabic, English or
-Franco-Arabic, remembers the conversation and returning customers, answers store questions from an editable
+product recommendations as picture cards with the correct links. She replies in English only for now (a
+customer who writes Arabic gets a warm English reply), remembers the conversation and returning customers, answers store questions from an editable
 knowledge file, and hands the chat to a person when she should.
 
 It is also a **learning project**: the code is layered (ports and adapters), small and tested, and every design

@@ -118,7 +118,7 @@ def _max_budget(turns: list[BotTurn], budget: Any, price_of: Callable[[str], flo
 
 def _language(turns: list[BotTurn], expected: str, _: Callable[[str], float]) -> CheckResult:
     ratios = [arabic_ratio(t.reply) for t in turns]
-    # "arabic", or "franco": Franco-Arabic customers are answered in Egyptian Arabic letters
+    # the bot is English-only for now, so every scenario expects "english"
     ok = all(r <= 0.05 for r in ratios) if expected == "english" else all(r >= 0.2 for r in ratios)
     return CheckResult(f"language_{expected}", ok, f"arabic_ratios={[round(r, 2) for r in ratios]}")
 

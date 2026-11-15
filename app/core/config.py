@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     llm_retry_base_delay_seconds: float = 0.5
     max_tool_rounds: int = 5
     search_result_limit: int = 5
-    prompt_version: str = "v2"
+    prompt_version: str = "v3"
     eval_judge_model: str = "gpt-5-mini"
 
     # --- Embeddings ---

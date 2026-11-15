@@ -11,10 +11,7 @@ from app.services.handoff_service import HandoffService
 
 logger = logging.getLogger(__name__)
 
-TEXT_ONLY_REPLY = (
-    "I can only read text messages for now 🤍 Could you type it for me?\n"
-    "أقدر أقرأ الرسائل النصية بس دلوقتي، ممكن تكتبهالي؟"
-)
+TEXT_ONLY_REPLY = "I can only read text messages for now 🤍 Could you type it for me?"
 
 
 class IncomingMessageService:

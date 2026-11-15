@@ -50,7 +50,7 @@ REPLY_SCHEMA: dict[str, Any] = {
 }
 
 
-def load_system_prompt(version: str = "v2") -> str:
+def load_system_prompt(version: str = "v3") -> str:
     return (PROMPTS_DIR / f"system_{version}.md").read_text(encoding="utf-8")
 
 

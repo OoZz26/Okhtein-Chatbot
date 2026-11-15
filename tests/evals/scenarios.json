@@ -7,7 +7,7 @@
     ],
     "checks": {
       "first_reply_no_products": true,
-      "language": "arabic",
+      "language": "english",
       "max_questions_before_products": 3
     }
   },
@@ -25,7 +25,7 @@
       "first_reply_no_products": true,
       "max_questions_before_products": 3,
       "products_by_turn": 4,
-      "language": "arabic"
+      "language": "english"
     }
   },
   {
@@ -42,13 +42,13 @@
   },
   {
     "id": "specific_arabic_wedding",
-    "description": "A specific request in Egyptian Arabic (gold clutch for a wedding): recommend immediately, with reasons.",
+    "description": "A specific request in Egyptian Arabic (gold clutch for a wedding): recommend immediately, with reasons, replying in English.",
     "turns": [
       "عايزة كلتش دهبي لفرح"
     ],
     "checks": {
       "first_reply_has_products": true,
-      "language": "arabic"
+      "language": "english"
     }
   },
   {
@@ -83,25 +83,25 @@
   },
   {
     "id": "franco_arabic",
-    "description": "Franco-Arabic (Arabic written in Latin letters). The bot should answer in warm Egyptian Arabic.",
+    "description": "Franco-Arabic (Arabic written in Latin letters). The bot should answer warmly in English (English-only for now).",
     "turns": [
       "ana 3ayz hadia l sa7bi"
     ],
     "checks": {
       "first_reply_no_products": true,
-      "language": "franco"
+      "language": "english"
     }
   },
   {
     "id": "gender_neutral_arabic",
-    "description": "Arabic with no gendered words from the customer. The bot must address them neutrally (حضرتك) and not guess.",
+    "description": "Arabic with no gendered words from the customer. The bot must reply in English, address them neutrally and not guess gender.",
     "turns": [
       "ممكن تساعدني أختار شنطة؟"
     ],
     "checks": {
       "first_reply_no_products": true,
       "no_gendered_address": true,
-      "language": "arabic"
+      "language": "english"
     }
   },
   {
@@ -138,7 +138,7 @@
         "14"
       ],
       "no_products": true,
-      "language": "arabic"
+      "language": "english"
     }
   },
   {
@@ -151,7 +151,7 @@
       "no_money_amounts": true,
       "mentions_team": true,
       "no_products": true,
-      "language": "arabic"
+      "language": "english"
     }
   },
   {
@@ -175,7 +175,7 @@
     "checks": {
       "triggers_handoff": true,
       "no_products": true,
-      "language": "arabic"
+      "language": "english"
     }
   },
   {

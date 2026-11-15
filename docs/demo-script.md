@@ -20,7 +20,7 @@ Redis: `docker compose exec redis redis-cli FLUSHALL`; the conversation reloads 
 
 | You send | Expected |
 |---|---|
-| `عايزة شنطة` | ONE short, warm question (occasion? everyday or evening?), in Egyptian Arabic, addressed with the neutral "حضرتك" or in the feminine you used, **no products yet** |
+| `عايزة شنطة` | ONE short, warm question (occasion? everyday or evening?), **in English** with one kind line that Nour chats in English for now, **no products yet** |
 | `لسهرة وميزانيتي 60 ألف` | A short warm message, then **2-3 image cards**, each with name, price and a real link, every price within 60,000 EGP |
 
 Shows: discovery before searching, language mirroring, hybrid search, image cards, budget respected.

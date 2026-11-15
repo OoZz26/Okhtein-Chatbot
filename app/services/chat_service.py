@@ -16,10 +16,7 @@ from app.services.returning_customer_service import ReturningCustomerService
 logger = logging.getLogger(__name__)
 
 MS_PER_SECOND = 1000
-HOLDING_MESSAGE = (
-    "Thank you for your message 🤍 I need a moment, and I'll get back to you very soon.\n"
-    "شكراً لرسالة حضرتك 🤍 محتاجة لحظة وهرد على حضرتك في أقرب وقت."
-)
+HOLDING_MESSAGE = "Thank you for your message 🤍 I need a moment, and I'll get back to you very soon."
 FOLLOW_UP_REASON = "assistant unavailable: every LLM provider failed"
 
 
