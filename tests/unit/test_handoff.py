@@ -82,6 +82,17 @@ class TestHandoffService:
         rig.clock.advance(hours=2)
         assert not await rig.service.is_handed_off(CHAT)  # auto-released after 13h
 
+    async def test_each_staff_reply_restarts_the_timeout(self) -> None:
+        rig = make_handoffs(timeout_hours=12)
+        await rig.service.hand_off(CHAT, "complaint", "angry about delivery")
+
+        rig.clock.advance(hours=11)
+        await rig.service.staff_took_over(CHAT)  # staff are still talking to the customer
+        rig.clock.advance(hours=2)
+
+        assert await rig.service.is_handed_off(CHAT)  # 13h since the handoff, but only 2h since staff wrote
+        assert rig.store.states[CHAT].reason == "complaint"  # the original reason is kept
+
     async def test_a_staff_reply_hands_the_chat_off_without_a_notification(self) -> None:
         rig = make_handoffs()
 

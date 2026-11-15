@@ -56,6 +56,22 @@ class TestRedisChatLock:
 
         assert 0 < await client.pttl("lock:chat:chat-1") <= 5000  # a crashed worker cannot block forever
 
+    async def test_the_owner_can_extend_the_lock(self) -> None:
+        client = redis()
+        lock = RedisChatLock(client, ttl_ms=5000)
+        token = await lock.acquire(CHAT)
+        assert token is not None
+        await client.pexpire("lock:chat:chat-1", 100)  # nearly expired
+
+        assert await lock.extend(CHAT, token)
+        assert await client.pttl("lock:chat:chat-1") > 100  # the TTL was reset
+
+    async def test_a_stale_token_cannot_extend_someone_elses_lock(self) -> None:
+        lock = RedisChatLock(redis(), ttl_ms=5000)
+        await lock.acquire(CHAT)
+
+        assert not await lock.extend(CHAT, "not-the-owner")
+
 
 class TestRedisRateLimiter:
     async def test_sends_within_the_limit_are_free_then_callers_must_wait(self) -> None:

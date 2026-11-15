@@ -87,7 +87,8 @@ def tool_call(arguments: dict[str, Any], call_id: str = "call_1") -> ToolCall:
 class FakeGateway:
     """Records what would have been sent to WhatsApp, in order."""
 
-    def __init__(self, fail_images: bool = False) -> None:
+    def __init__(self, fail_images: bool = False, fail_seen: bool = False) -> None:
+        self.fail_seen = fail_seen
         self.sent: list[tuple[str, str]] = []
         self.images: list[tuple[str, str, str]] = []
         self.seen: list[str] = []
@@ -99,6 +100,8 @@ class FakeGateway:
         self.events.append("text")
 
     async def mark_seen(self, chat_id: str) -> None:
+        if self.fail_seen:
+            raise MessagingError("WAHA could not mark the chat as seen")
         self.seen.append(chat_id)
 
     async def send_image(self, chat_id: str, image_url: str, caption: str) -> None:
@@ -267,6 +270,7 @@ class InMemoryBuffer:
 class InMemoryLock:
     def __init__(self) -> None:
         self.held: dict[str, str] = {}
+        self.extensions = 0
         self._counter = 0
 
     async def acquire(self, chat_id: str) -> str | None:
@@ -279,6 +283,10 @@ class InMemoryLock:
     async def release(self, chat_id: str, token: str) -> None:
         if self.held.get(chat_id) == token:
             del self.held[chat_id]
+
+    async def extend(self, chat_id: str, token: str) -> bool:
+        self.extensions += 1
+        return self.held.get(chat_id) == token
 
 
 class NoLimit:

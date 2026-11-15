@@ -6,10 +6,15 @@ from app.domain.errors import PermanentLLMError
 from app.domain.llm.fallback_chain import FallbackLLMProvider, ProviderSlot
 from app.domain.models import IncomingMessage, LLMResponse
 from app.domain.tools.base import ToolRegistry
+from app.services.chat_service import HOLDING_MESSAGE, ChatResult
+from app.services.product_cards import ProductCardFactory
+from app.services.reply_sender import ReplySender
+from app.services.reply_service import ReplyService
 from tests.fakes import (
     FakeGateway,
     FakeLLM,
     InMemoryProducts,
+    NoLimit,
     ScriptedProvider,
     instant,
     make_chat_service,
@@ -56,3 +61,25 @@ async def test_typing_is_cleared_even_when_the_assistant_fails() -> None:
 
     assert gateway.events[-1] == "typing_off"
     assert len(gateway.sent) >= 1  # the holding message went out
+
+
+class BrokenStorageChat:
+    """A chat service whose database is down: it raises something that is not an OkhteinError."""
+
+    async def is_handed_off(self, chat_id: str) -> bool:
+        return False
+
+    async def handle_message(self, chat_id: str, text: str, sender_name: str = "") -> ChatResult:
+        raise ConnectionError("postgres is restarting")
+
+
+async def test_an_unexpected_storage_failure_still_gets_the_holding_message() -> None:
+    gateway = FakeGateway()
+    sender = ReplySender(gateway, NoLimit(), 3, 0.0, 0.0, sleep=instant)
+    cards = ProductCardFactory(InMemoryProducts([]), "https://eg.okhtein.com", "EGP")
+    service = ReplyService(BrokenStorageChat(), gateway, sender, cards)  # type: ignore[arg-type]
+
+    await service.reply(CHAT, "hi")
+
+    assert gateway.sent == [(CHAT, HOLDING_MESSAGE)]  # never silence
+    assert gateway.events[-1] == "typing_off"

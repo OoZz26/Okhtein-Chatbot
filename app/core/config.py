@@ -74,7 +74,7 @@ class Settings(BaseSettings):
     max_bubbles: int = 3
     typing_seconds_per_char: float = 0.03
     typing_max_delay_seconds: float = 3.0
-    send_rate_limit_per_minute: int = 20
+    send_rate_limit_per_minute: int = 60
     handoff_timeout_hours: float = 12.0
     profile_summary_max_chars: int = 300
     profile_products_shown_limit: int = 20

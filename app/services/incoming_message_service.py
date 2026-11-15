@@ -3,7 +3,7 @@
 import logging
 
 from app.core.privacy import mask_chat_id
-from app.domain.errors import OkhteinError
+from app.domain.errors import MessagingError, OkhteinError
 from app.domain.models import IncomingMessage
 from app.domain.ports import IdempotencyStore, MessagingGateway
 from app.services.debouncer import Debouncer
@@ -45,13 +45,20 @@ class IncomingMessageService:
             if message.from_me:
                 await self._handoffs.staff_took_over(message.chat_id)  # a person is answering: step back
                 return
-            await self._gateway.mark_seen(message.chat_id)
+            await self._mark_seen(message.chat_id)
             if message.has_media or not message.text.strip():
                 await self._answer_without_reading(message)
             else:
                 await self._debouncer.submit(message.chat_id, message.text, message.sender_name)
         except OkhteinError:
             logger.exception("Could not handle the message from %s", mask_chat_id(message.chat_id))
+
+    async def _mark_seen(self, chat_id: str) -> None:
+        """Blue ticks are cosmetic: if WAHA fails here, the message must still be answered."""
+        try:
+            await self._gateway.mark_seen(chat_id)
+        except MessagingError as exc:
+            logger.warning("Could not mark the chat of %s as seen: %s", mask_chat_id(chat_id), exc)
 
     async def _answer_without_reading(self, message: IncomingMessage) -> None:
         if not await self._handoffs.is_handed_off(message.chat_id):

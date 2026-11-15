@@ -61,6 +61,8 @@ from app.services.returning_customer_service import ReturningCustomerService
 
 logger = logging.getLogger(__name__)
 
+LOCK_RENEWALS_PER_TTL = 3  # renew well before expiry, so one slow Redis call cannot lose the lock
+
 
 @lru_cache
 def _redis() -> Redis:
@@ -257,6 +259,7 @@ def build_incoming_message_service() -> IncomingMessageService:
         process=replies.reply,
         quiet_seconds=settings.debounce_seconds,
         lock_wait_seconds=settings.lock_wait_seconds,
+        renew_every_seconds=settings.lock_ttl_seconds / LOCK_RENEWALS_PER_TTL,
     )
     return IncomingMessageService(
         gateway=gateway,

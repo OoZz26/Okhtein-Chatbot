@@ -128,3 +128,17 @@ docker compose exec postgres psql -U okhtein -d okhtein -c "select chat_id, prof
 
 ### 012: Load test (nothing manual; optional re-run)
 Done and measured overnight (results in `docs/load-test-results.md`): webhook p95 **23 ms**, 0 failures at 100 simulated customers; 160/160 bursts got exactly one reply; 10 real-LLM conversations ran without errors, retries or fallbacks (replies took 20-40 s, all LLM time). To re-run: `python scripts/run_load_test.py` (isolated app on port 8001, cleans up after itself). Add nothing to `.env`; load mode is off by default (`LOAD_TEST_MODE=false`) and is refused when `ENVIRONMENT=production`.
+
+## Post-build review (2026-11-15)
+
+- Re-ran everything: ruff + mypy clean, **282 tests pass**, load test reproduced (2444 webhook calls, p50 4 ms, p95 23 ms, 0 failures; 155/155 bursts got exactly one reply). The Locust "I/O operation on closed file" traceback at the end is a harmless Locust shutdown quirk; the reports are written.
+- Code review findings:
+  1. ✅ Fixed — Postgres/Redis errors in `ReplyService` now send the holding message instead of silence.
+  2. ✅ Fixed — after each reply the debouncer checks for messages sent meanwhile and schedules one more pass, so a follower that gave up waiting for the lock is no longer lost.
+  3. ✅ Fixed — the chat lock is renewed every `LOCK_TTL_SECONDS / 3` while a reply is being made (`ChatLock.extend`), so a slow reply never outlives its lock.
+  4. ✅ Fixed — a failing "mark as seen" is logged and the message is still answered.
+  5. ✅ Mitigated — default `SEND_RATE_LIMIT_PER_MINUTE` raised 20 → 60 and documented in `docs/load-test-results.md`. It is still one counter for the whole number (that is the point: it protects the number), so pick the value you trust for WhatsApp.
+  6. ✅ Fixed — every staff message restarts the 12 h handoff timer.
+  7. ⚪ Open — returning-customer summary skips everything after the first 60 messages of a visit.
+  8. ⚪ Open — that summary LLM call runs before the first reply → slower "welcome back".
+  9. ✅ `Debouncer._names` leak fixed (entry removed after use); ⚪ `build_llm` still builds two provider chains (harmless).

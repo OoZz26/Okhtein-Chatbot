@@ -114,3 +114,12 @@ Locust shutdown quirk and the reports are complete.
 - Run several uvicorn workers; the Redis lock and sequence counters already make the debouncer safe across
   processes, but the in-memory sender-name map in the debouncer would move to Redis.
 - Try a faster model for short turns and measure the effect on Scenario C.
+
+## What the load test does NOT measure: the outgoing send limit
+
+`scripts/run_load_test.py` sets `SEND_RATE_LIMIT_PER_MINUTE` to 1,000,000, because the fake gateway sends
+nothing real. In production the limit is **one counter shared by every chat** (default 60/min since the
+post-build review). A reply is up to `MAX_BUBBLES` texts plus one message per product card, so the real
+ceiling is roughly 8–15 replies per minute for the whole business number. When it is reached, replies
+wait for the next minute; they are not lost (the chat lock is renewed while waiting, and messages sent
+meanwhile are picked up after the reply). Raise it only as far as the WhatsApp number can safely send.

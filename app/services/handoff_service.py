@@ -49,11 +49,14 @@ class HandoffService:
         return True
 
     async def staff_took_over(self, chat_id: str) -> None:
-        """A person wrote in the chat from the business phone: the bot must stop. No notification needed."""
+        """A person wrote in the chat from the business phone: the bot must stop. No notification needed.
+        Every staff message restarts the timeout, so the bot never jumps into a live human conversation."""
         state = await self._store.get(chat_id)
-        if not state.is_handed_off:
-            await self._store.save(chat_id, state.handoff(STAFF_REPLY_REASON, "", self._clock()))
-            logger.warning("handoff chat=%s reason=%s", mask_chat_id(chat_id), STAFF_REPLY_REASON)
+        if state.is_handed_off:
+            await self._store.save(chat_id, state.refreshed(self._clock()))
+            return
+        await self._store.save(chat_id, state.handoff(STAFF_REPLY_REASON, "", self._clock()))
+        logger.warning("handoff chat=%s reason=%s", mask_chat_id(chat_id), STAFF_REPLY_REASON)
 
     async def release(self, chat_id: str) -> bool:
         """Give the chat back to the bot. Returns False if it was not handed off."""

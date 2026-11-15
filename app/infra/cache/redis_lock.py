@@ -32,3 +32,18 @@ class RedisChatLock:
                     await pipe.execute()
             except WatchError:
                 pass  # the key changed under us: it is no longer ours to delete
+
+    async def extend(self, chat_id: str, token: str) -> bool:
+        """Compare-and-expire, for a reply that takes longer than the TTL."""
+        key = self._key(chat_id)
+        async with self._client.pipeline(transaction=True) as pipe:
+            try:
+                await pipe.watch(key)
+                if await pipe.get(key) != token:
+                    return False
+                pipe.multi()  # type: ignore[no-untyped-call]
+                pipe.pexpire(key, self._ttl_ms)
+                await pipe.execute()
+                return True
+            except WatchError:
+                return False

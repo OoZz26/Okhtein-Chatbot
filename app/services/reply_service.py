@@ -5,7 +5,7 @@ import logging
 from app.core.privacy import mask_chat_id
 from app.domain.errors import OkhteinError
 from app.domain.ports import MessagingGateway
-from app.services.chat_service import ChatService
+from app.services.chat_service import HOLDING_MESSAGE, ChatService
 from app.services.product_cards import ProductCardFactory
 from app.services.reply_sender import ReplySender
 
@@ -38,9 +38,20 @@ class ReplyService:
                 await self._sender.send(chat_id, result.message, self._cards.build(result.product_handles))
         except OkhteinError:
             logger.exception("Could not answer the message from %s", mask_chat_id(chat_id))
+        except Exception:  # noqa: BLE001 - e.g. Postgres or Redis down: the customer must not get silence
+            logger.exception(
+                "Unexpected failure answering %s; sending the holding message", mask_chat_id(chat_id)
+            )
+            await self._send_holding(chat_id)
         finally:
             if typing:
                 await self._stop_typing(chat_id)
+
+    async def _send_holding(self, chat_id: str) -> None:
+        try:
+            await self._gateway.send_text(chat_id, HOLDING_MESSAGE)
+        except Exception:  # noqa: BLE001 - best effort; the failure is already logged above
+            logger.warning("Could not send the holding message to %s", mask_chat_id(chat_id))
 
     async def _stop_typing(self, chat_id: str) -> None:
         try:

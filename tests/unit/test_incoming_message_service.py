@@ -39,11 +39,13 @@ class Rig:
         await self.debouncer.wait_idle()
 
 
-def build(allowed: frozenset[str] = frozenset()) -> Rig:
+def build(allowed: frozenset[str] = frozenset(), gateway: FakeGateway | None = None) -> Rig:
     products = InMemoryProducts([CLUTCH])
     reply = LLMResponse(json.dumps({"message": "Hello!", "product_handles": ["black-clutch"]}))
     agent = SalesAgent(FakeLLM([reply] * 5), ToolRegistry([]), products, load_system_prompt(), 3)
-    incoming, debouncer, gateway = make_incoming(make_chat_service(agent), allowed=allowed, products=[CLUTCH])
+    incoming, debouncer, gateway = make_incoming(
+        make_chat_service(agent), gateway=gateway, allowed=allowed, products=[CLUTCH]
+    )
     return Rig(incoming, debouncer, gateway)
 
 
@@ -92,3 +94,10 @@ async def test_only_allowed_numbers_get_replies() -> None:
     await rig.deliver(message(message_id="a"), message(message_id="b", chat_id="209999999999@c.us"))
 
     assert [chat for chat, _ in rig.gateway.sent] == [CUSTOMER]
+
+
+async def test_a_failing_seen_receipt_does_not_drop_the_message() -> None:
+    rig = build(gateway=FakeGateway(fail_seen=True))
+    await rig.deliver(message())
+
+    assert rig.gateway.sent == [(CUSTOMER, "Hello!")]  # blue ticks failed, the customer is still answered

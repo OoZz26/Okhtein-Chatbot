@@ -138,6 +138,10 @@ class ChatLock(Protocol):
         """Release only if `token` still owns the lock (it may have expired and been re-taken)."""
         ...
 
+    async def extend(self, chat_id: str, token: str) -> bool:
+        """Reset the lock's expiry if `token` still owns it. False means the lock was lost."""
+        ...
+
 
 class RateLimiter(Protocol):
     """Caps how many messages we send per minute (an unofficial gateway punishes spammy accounts)."""

@@ -105,3 +105,31 @@ async def test_the_sender_name_is_passed_along() -> None:
     await debouncer.wait_idle()
 
     assert seen == ["Sara"]
+
+
+async def test_a_message_whose_task_gave_up_waiting_is_still_answered() -> None:
+    replies = Replies(work_seconds=0.05)  # a slow reply
+    # lock_wait 0: the second burst's task gives up at once, as it would after 90s of a very slow reply
+    debouncer = Debouncer(InMemoryBuffer(), InMemoryLock(), replies, 0.0, 0.0, sleep=quick_yield)
+
+    await debouncer.submit(CHAT, "burst one")
+    while "start:burst one" not in replies.timeline:
+        await asyncio.sleep(0.005)
+    await debouncer.submit(CHAT, "and in black?")
+    await debouncer.wait_idle()
+
+    assert [text for _, text in replies.replies] == ["burst one", "and in black?"]
+
+
+async def test_the_lock_is_renewed_while_a_slow_reply_is_being_made() -> None:
+    lock = InMemoryLock()
+    replies = Replies(work_seconds=0.05)
+    debouncer = Debouncer(
+        InMemoryBuffer(), lock, replies, 0.0, 1.0, sleep=quick_yield, renew_every_seconds=0.001
+    )
+
+    await debouncer.submit(CHAT, "hi")
+    await debouncer.wait_idle()
+
+    assert lock.extensions > 0  # the TTL kept being reset during the reply
+    assert lock.held == {}  # and the lock is released afterwards
