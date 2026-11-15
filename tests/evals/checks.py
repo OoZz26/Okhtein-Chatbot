@@ -35,6 +35,10 @@ OFFERS_WE_CANNOT_FULFIL = re.compile(
     r"|track your order|apply a discount|ask the team|contact the team|notify the team|let the team know)"
     r"|احجزلك|أحجزلك|ابعتلك صور|أبعتلك صور|أحجزها|احجزها"
 )
+# Shopping words that do not belong in the answer to a plain "hi": the first hello is for connecting.
+SALES_OPENER = re.compile(
+    r"(?i)\b(gift|for yourself|occasion|budget|shopping for|looking for|bag|clutch|jewel\w*|eyewear|price)\b"
+)
 
 
 @dataclass(frozen=True)
@@ -93,6 +97,18 @@ def _first_reply_no_products(turns: list[BotTurn], _: Any, __: Callable[[str], f
         not turns[0].handles and asked,
         f"handles={turns[0].handles} asked={asked}",
     )
+
+
+def _opens_with_small_talk(turns: list[BotTurn], _: Any, __: Callable[[str], float]) -> CheckResult:
+    sales = SALES_OPENER.findall(turns[0].reply)
+    return CheckResult("opens_with_small_talk", not turns[0].handles and not sales, f"sales_words={sales}")
+
+
+def _reply_mentions_price(turns: list[BotTurn], turn: int, __: Callable[[str], float]) -> CheckResult:
+    """The customer asked for a price range at this turn: the reply must actually give one."""
+    reply = turns[turn - 1].reply
+    amounts = [m.group(0) for m in MONEY.finditer(reply)]
+    return CheckResult(f"reply_{turn}_answers_with_prices", bool(amounts), f"amounts={amounts}")
 
 
 def _products_by_turn(turns: list[BotTurn], limit: int, __: Callable[[str], float]) -> CheckResult:
@@ -190,7 +206,9 @@ def _never_offers_the_impossible(turns: list[BotTurn]) -> CheckResult:
 _CHECKERS: dict[str, Callable[[list[BotTurn], Any, Callable[[str], float]], CheckResult]] = {
     "first_reply_has_products": _first_reply_has_products,
     "first_reply_no_products": _first_reply_no_products,
+    "opens_with_small_talk": _opens_with_small_talk,
     "products_by_turn": _products_by_turn,
+    "reply_at_turn_mentions_price": _reply_mentions_price,
     "max_questions_before_products": _max_questions,
     "max_budget": _max_budget,
     "language": _language,

@@ -132,3 +132,30 @@ async def test_no_rule_message_when_there_is_no_rule() -> None:
     await build_agent(llm).respond("hi")
 
     assert llm.calls[0][-1].role == "user"
+
+
+async def test_the_catalog_overview_reaches_the_system_prompt() -> None:
+    llm = FakeLLM([final("Hi", [])])
+    tool = make_search_tool(PRODUCTS)
+    agent = SalesAgent(
+        llm,
+        ToolRegistry([tool]),
+        PRODUCTS,
+        load_system_prompt(),
+        3,
+        catalog_overview="- Wallet: sold out right now",
+    )
+
+    await agent.respond("hi")
+
+    system = llm.calls[0][0].content
+    assert "# Catalog at a glance" in system
+    assert "- Wallet: sold out right now" in system
+
+
+async def test_no_catalog_section_without_an_overview() -> None:
+    llm = FakeLLM([final("Hi", [])])
+
+    await build_agent(llm).respond("hi")
+
+    assert "Catalog at a glance" not in llm.calls[0][0].content

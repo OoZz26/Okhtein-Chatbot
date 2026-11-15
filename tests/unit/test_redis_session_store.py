@@ -20,6 +20,7 @@ async def test_state_round_trips_including_arabic_profile_values() -> None:
         ("clutch-a", "ring-b"),
         awaiting_answer=True,
         dodged_questions=1,
+        greet_turns=1,
     )
 
     await store.save("chat-1", state)

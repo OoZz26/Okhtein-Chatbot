@@ -69,7 +69,7 @@ class ChatService:
             sender_name=sender_name,
             stage=state.stage,
             profile_summary=state.profile.summary(),
-            guidance=self._policy.guidance(state),
+            guidance=self._policy.guidance(state, text),
             returning_notes=returning.notes,
             welcome_back=returning.welcome_back,
             shown_products=state.shown_products,

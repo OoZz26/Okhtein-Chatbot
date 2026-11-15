@@ -1,6 +1,7 @@
 """The `search_products` tool. Results never include URLs: our code builds links from handles."""
 
 from collections.abc import Sequence
+from dataclasses import replace
 from typing import Any
 
 from app.domain.models import ProductGroup
@@ -52,12 +53,28 @@ class SearchProductsTool:
             include_out_of_stock=bool(arguments.get("include_out_of_stock", False)),
             limit=self._result_limit,
         )
-        result: dict[str, Any] = {
-            "results": [self._describe(group) for group in await self._retriever.search(query)]
-        }
+        groups = await self._retriever.search(query)
+        if not groups and category and not query.include_out_of_stock:
+            groups, note = await self._closest_in_stock(query, category)
+        result: dict[str, Any] = {"results": [self._describe(group) for group in groups]}
         if note:
             result["note"] = note
         return result
+
+    async def _closest_in_stock(self, query: SearchQuery, category: str) -> tuple[list[ProductGroup], str]:
+        """Nothing of this category is in stock: never leave the customer with "I couldn't find
+        anything". Say why, and return the closest in-stock pieces from other categories instead."""
+        sold_out = await self._retriever.search(replace(query, include_out_of_stock=True))
+        alternatives = await self._retriever.search(
+            replace(query, text=f"{query.text} {category}".strip(), category=None)
+        )
+        why = "is sold out right now" if sold_out else "matches this search right now"
+        return alternatives, (
+            f"No in-stock {category} {why}. The results below are the closest in-stock pieces from other "
+            "categories. Tell the customer honestly in one kind line, then offer the closest similar "
+            "alternative (check the catalog at a glance for a related category and search it if these are "
+            "not similar enough). Never just say you could not find anything."
+        )
 
     def _known_category(self, requested: object) -> tuple[str | None, str]:
         """Only real catalog categories filter the search; an invented one (like 'wedding') is ignored."""

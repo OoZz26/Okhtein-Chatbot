@@ -1,5 +1,48 @@
 [
   {
+    "id": "hello_connect_first",
+    "sender_name": "Sara",
+    "description": "The customer (WhatsApp name: Sara, so using her name is fine) only says hi, then chats, then says they are just looking. A great stylist says hello like a person first (asks how they are, no sales question), replies to the small talk and gently asks if they are looking for something special or just browsing, then lets them take their time with no pressure.",
+    "turns": [
+      "hi",
+      "good thanks, you?",
+      "just looking"
+    ],
+    "checks": {
+      "opens_with_small_talk": true,
+      "no_products": true,
+      "language": "english"
+    }
+  },
+  {
+    "id": "hello_with_a_need",
+    "description": "The customer says hi AND says what they want (a gift for their sister). Greet warmly in a few words, react to the gift with genuine warmth, and ask one friendly question. No small talk detour, no products yet.",
+    "turns": [
+      "hi, I'm looking for a gift for my sister"
+    ],
+    "checks": {
+      "first_reply_no_products": true,
+      "language": "english"
+    }
+  },
+  {
+    "id": "answers_their_question_and_offers_alternatives",
+    "description": "Replay of a real WhatsApp chat. The customer wants a wallet as a gift and asks the bot for a price range and colours. A great stylist ANSWERS that question first (real prices and colours; wallets are sold out, so say so and mention the closest alternative such as cardholders) instead of ignoring it, never asks the customer for a budget right after they asked for a price range, and when the budget is open shows real in-stock alternatives instead of saying it could not find anything.",
+    "turns": [
+      "hi",
+      "fine",
+      "iam searching for wallets",
+      "no it is a gift for someone special\ncan you give me a price range and colors",
+      "bold will be fine",
+      "the budget is open"
+    ],
+    "checks": {
+      "reply_at_turn_mentions_price": 4,
+      "products_by_turn": 6,
+      "language": "english"
+    }
+  },
+  {
     "id": "vague_arabic",
     "description": "The customer is vague (only a category). A good stylist asks ONE friendly question and shows nothing yet.",
     "turns": [

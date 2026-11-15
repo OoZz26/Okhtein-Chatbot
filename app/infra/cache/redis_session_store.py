@@ -29,6 +29,7 @@ class RedisSessionStore:
             shown_products=tuple(data.get("shown_products", ())),  # absent in sessions saved before
             awaiting_answer=bool(data.get("awaiting_answer", False)),
             dodged_questions=int(data.get("dodged_questions", 0)),
+            greet_turns=int(data.get("greet_turns", 0)),
         )
 
     async def save(self, chat_id: str, state: SessionState) -> None:
@@ -39,6 +40,7 @@ class RedisSessionStore:
             "shown_products": list(state.shown_products),
             "awaiting_answer": state.awaiting_answer,
             "dodged_questions": state.dodged_questions,
+            "greet_turns": state.greet_turns,
         }
         await self._client.set(
             self._key(chat_id), json.dumps(payload, ensure_ascii=False), ex=self._ttl_seconds

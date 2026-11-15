@@ -1,4 +1,4 @@
-from app.domain.discovery import CustomerProfile, DiscoveryPolicy, SessionState
+from app.domain.discovery import CustomerProfile, DiscoveryPolicy, SessionState, asks_us_something
 from app.domain.models import AgentReply, ConversationStage
 
 Stage = ConversationStage
@@ -169,3 +169,61 @@ class TestDodgedQuestions:
         state = SessionState(awaiting_answer=True, dodged_questions=2)
 
         assert POLICY.update(state, showing()).dodged_questions == 0
+
+
+class TestConnectFirst:
+    def test_a_first_hello_asks_how_they_are_and_forbids_sales_questions(self) -> None:
+        note = POLICY.guidance(SessionState())  # a new chat starts in the greet stage
+
+        assert "very first hello" in note
+        assert "how their day is going" in note
+        assert "Do NOT ask what they are shopping for" in note
+
+    def test_a_hello_with_a_need_still_gets_the_checklist(self) -> None:
+        note = POLICY.guidance(SessionState())
+
+        assert "says anything about what they want" in note
+        assert "BEFORE the latest message:" in note
+
+    def test_after_the_hello_the_rule_opens_the_door_gently(self) -> None:
+        note = POLICY.guidance(SessionState(greet_turns=1))
+
+        assert "already said hello" in note
+        assert "just having a look around" in note
+        assert "very first hello" not in note
+
+    def test_small_talk_questions_do_not_use_up_discovery_questions(self) -> None:
+        state = POLICY.update(SessionState(), asking("Hi Sara! How's your day going?", stage=Stage.GREET))
+        state = POLICY.update(state, asking("Looking for anything special today?", stage=Stage.GREET))
+
+        assert state.questions_asked == 0
+        assert not state.awaiting_answer  # "good, you?" is not a dodged question
+        assert state.greet_turns == 2
+
+    def test_moving_on_to_discovery_resets_the_greet_turns_and_counts_questions(self) -> None:
+        state = POLICY.update(SessionState(greet_turns=2), asking("For a special occasion?"))
+
+        assert state.stage == Stage.DISCOVER
+        assert state.greet_turns == 0
+        assert state.questions_asked == 1
+        assert "very first hello" not in POLICY.guidance(state)
+
+
+class TestAnswerFirst:
+    def test_a_question_gets_the_answer_first_rule(self) -> None:
+        asked = "no it is a gift for someone special\ncan you give me a price range and colors"
+        note = POLICY.guidance(SessionState(stage=Stage.DISCOVER), asked)
+
+        assert note.startswith("The customer's latest message asks YOU something")
+        assert "do not ask their budget" in note
+
+    def test_the_greet_rule_carries_it_too(self) -> None:
+        assert "asks YOU something" in POLICY.guidance(SessionState(), "how much are your clutches?")
+
+    def test_a_plain_need_is_not_a_question(self) -> None:
+        for need in ("I want a bag", "I'm looking for a gift for my mum", "عايزة شنطة", "ana 3ayz hadia"):
+            assert "asks YOU something" not in POLICY.guidance(SessionState(), need)
+
+    def test_questions_are_recognised_in_english_and_arabic(self) -> None:
+        for question in ("which colours do you have", "بكام الشنطة دي", "is it available in black"):
+            assert asks_us_something(question)

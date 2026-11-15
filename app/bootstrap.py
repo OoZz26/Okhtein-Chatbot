@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.core.config import Settings, get_settings
 from app.domain.agent.sales_agent import SalesAgent, load_system_prompt
+from app.domain.catalog_overview import render_catalog_overview
 from app.domain.discovery import DiscoveryPolicy
 from app.domain.errors import ConfigurationError
 from app.domain.llm.fallback_chain import FallbackLLMProvider, ProviderSlot
@@ -182,6 +183,7 @@ def build_agent() -> SalesAgent:
         system_prompt=load_system_prompt(settings.prompt_version),
         max_tool_rounds=settings.max_tool_rounds,
         store_info=FileStoreInfoSource(Path(settings.knowledge_path)),
+        catalog_overview=render_catalog_overview(products.all(), settings.store_currency),
     )
 
 

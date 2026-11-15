@@ -43,3 +43,40 @@ async def test_results_never_contain_urls() -> None:
     result = await tool().run({"query": "gold"})
 
     assert "http" not in str(result)
+
+
+SMALL_LEATHER = InMemoryProducts(
+    [
+        make_product("envelope-wallet", title="Envelope Wallet", category="Wallet", available=False),
+        make_product("palmette-cardholder", title="Palmette Cardholder", category="Cardholder"),
+    ]
+)
+
+
+def small_leather_tool() -> SearchProductsTool:
+    search = KeywordSearch(SMALL_LEATHER)
+    return SearchProductsTool(KeywordRetriever(search), search.categories(), "EGP", 5)
+
+
+async def test_a_sold_out_category_returns_the_closest_in_stock_pieces_and_says_why() -> None:
+    result = await small_leather_tool().run({"query": "black leather", "category": "wallet"})
+
+    assert [r["handle"] for r in result["results"]] == ["palmette-cardholder"]
+    assert "No in-stock wallet is sold out right now" in result["note"]
+    assert "Never just say you could not find anything" in result["note"]
+
+
+async def test_an_in_stock_category_gets_no_fallback_note() -> None:
+    result = await small_leather_tool().run({"query": "black", "category": "cardholder"})
+
+    assert [r["handle"] for r in result["results"]] == ["palmette-cardholder"]
+    assert "note" not in result
+
+
+async def test_asking_for_sold_out_pieces_on_purpose_does_not_fall_back() -> None:
+    result = await small_leather_tool().run(
+        {"query": "black", "category": "wallet", "include_out_of_stock": True}
+    )
+
+    assert [r["handle"] for r in result["results"]] == ["envelope-wallet"]
+    assert "note" not in result

@@ -13,6 +13,7 @@ from app.domain.errors import LLMError
 from app.domain.knowledge import render_store_knowledge
 from app.domain.models import AgentContext, AgentReply, ChatMessage, ConversationStage, ToolCall
 from app.domain.ports import LLMProvider, ProductRepository, StoreInfoSource
+from app.domain.reply_style import humanize_punctuation, remove_arabic_words
 from app.domain.tools.base import ToolRegistry
 
 logger = logging.getLogger(__name__)
@@ -65,6 +66,7 @@ class SalesAgent:
         max_tool_rounds: int,
         *,
         store_info: StoreInfoSource | None = None,
+        catalog_overview: str = "",
     ) -> None:
         self._llm = llm
         self._tools = tools
@@ -72,6 +74,7 @@ class SalesAgent:
         self._system_prompt = system_prompt
         self._max_tool_rounds = max_tool_rounds
         self._store_info = store_info
+        self._catalog_overview = catalog_overview
 
     async def respond(
         self,
@@ -145,8 +148,19 @@ class SalesAgent:
         if context.returning_notes:
             notes.append(self._returning_note(context))
         session_notes = "## Session notes\n" + "\n".join(f"- {note}" for note in notes)
-        sections = [self._system_prompt, self._knowledge_section(), session_notes]
+        sections = [self._system_prompt, self._knowledge_section(), self._catalog_section(), session_notes]
         return "\n\n".join(section for section in sections if section)
+
+    def _catalog_section(self) -> str:
+        if not self._catalog_overview:
+            return ""
+        return (
+            "# Catalog at a glance (in stock right now)\n\n"
+            "Background knowledge only: use it to answer direct questions about price ranges, colours and "
+            "availability, and to suggest the closest category when one is sold out. Knowing the catalog is "
+            "NOT a reason to recommend early: the discovery rules still decide when to show products. Call "
+            "`search_products` before naming any specific product.\n\n" + self._catalog_overview
+        )
 
     def _knowledge_section(self) -> str:
         """The owner-edited store facts, re-read when the file changes. Empty when no source is wired."""
@@ -191,7 +205,7 @@ class SalesAgent:
         if not isinstance(data, dict) or not isinstance(data.get("message"), str):
             raise LLMError("Model reply is missing a text `message`")
         return AgentReply(
-            message=self._strip_urls(data["message"]),
+            message=humanize_punctuation(remove_arabic_words(self._strip_urls(data["message"]))),
             product_handles=self._known_handles(data.get("product_handles")),
             stage=self._parse_stage(data.get("stage")),
             profile_updates=self._parse_profile_updates(data.get("profile_updates")),
