@@ -1,20 +1,17 @@
 """FollowUpStore adapter: one row per flagged chat in Postgres."""
 
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.clock import utc_now
 from app.infra.db.models import FollowUpRow
-
-
-def _utc_now() -> datetime:
-    return datetime.now(UTC)
 
 
 class PostgresFollowUpStore:
     def __init__(
-        self, session_factory: async_sessionmaker[AsyncSession], clock: Callable[[], datetime] = _utc_now
+        self, session_factory: async_sessionmaker[AsyncSession], clock: Callable[[], datetime] = utc_now
     ) -> None:
         self._session_factory = session_factory
         self._clock = clock

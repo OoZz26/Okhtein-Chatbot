@@ -4,9 +4,9 @@ import logging
 from collections.abc import Callable
 from datetime import datetime, timedelta
 
+from app.core.clock import utc_now
 from app.core.privacy import mask_chat_id
 from app.domain.ports import HandoffStore, StaffNotifier
-from app.services.memory_service import utc_now
 
 logger = logging.getLogger(__name__)
 

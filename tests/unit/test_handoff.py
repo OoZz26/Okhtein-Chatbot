@@ -17,6 +17,7 @@ from tests.fakes import (
     make_chat_service,
     make_handoffs,
     make_incoming,
+    make_memory,
     make_product,
 )
 
@@ -254,3 +255,16 @@ class TestStaffNotifier:
 
 def test_a_timeout_of_exactly_the_limit_counts_as_expired() -> None:
     assert timedelta(hours=12) >= timedelta(hours=12)  # documents the >= boundary used by the service
+
+
+async def test_a_handed_off_chat_still_stores_the_customer_message_for_staff() -> None:
+    handoffs = make_handoffs()
+    rig = make_memory()
+    agent = SalesAgent(FakeLLM([]), ToolRegistry([]), InMemoryProducts([]), load_system_prompt(), 3)
+    chat = make_chat_service(agent, rig=rig, handoffs=handoffs.service)
+    await handoffs.service.hand_off(CHAT, "order tracking", "")
+
+    result = await chat.handle_message(CHAT, "any news?")
+
+    assert result.silent
+    assert [m.content for _, m, _ in rig.store.rows] == ["any news?"]

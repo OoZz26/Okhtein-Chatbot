@@ -1,10 +1,13 @@
-"""POST /chat: thin HTTP wrapper around ChatService."""
+"""POST /chat: thin HTTP wrapper around ChatService, for the team's tests and demos.
+
+It spends LLM calls and writes to any chat's memory, so it needs the admin key like /admin does."""
 
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
+from app.api.auth import require_admin
 from app.bootstrap import build_chat_service
 from app.services.chat_service import ChatService
 
@@ -28,7 +31,7 @@ def get_chat_service() -> ChatService:
     return build_chat_service()
 
 
-@router.post("/chat", response_model=ChatResponse)
+@router.post("/chat", response_model=ChatResponse, dependencies=[Depends(require_admin)])
 async def chat(body: ChatRequest, service: Annotated[ChatService, Depends(get_chat_service)]) -> ChatResponse:
     result = await service.handle_message(body.chat_id, body.text)
     return ChatResponse(

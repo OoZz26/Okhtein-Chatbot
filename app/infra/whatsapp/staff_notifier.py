@@ -41,9 +41,8 @@ class WhatsAppStaffNotifier:
         try:
             await self._gateway.send_text(self._staff_chat_id, describe(chat_id, state))
         except OkhteinError:
-            logger.exception(
-                "Could not send the staff notification"
-            )  # a failed alert must not break the chat
+            # A failed alert must not break the chat.
+            logger.exception("Could not send the staff notification")
 
 
 class CompositeStaffNotifier:

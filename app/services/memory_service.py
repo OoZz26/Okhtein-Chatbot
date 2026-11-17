@@ -1,14 +1,11 @@
 """Facade over the two-tier memory: Postgres is the source of truth, Redis is a fast cache."""
 
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
+from app.core.clock import utc_now
 from app.domain.models import ChatMessage
 from app.domain.ports import ConversationStore, ShortTermMemory
-
-
-def utc_now() -> datetime:
-    return datetime.now(UTC)
 
 
 class MemoryService:
@@ -44,9 +41,6 @@ class MemoryService:
         for message in reloaded:
             await self._short_term.append(chat_id, message)
         return reloaded
-
-    async def is_new_session(self, chat_id: str) -> bool:
-        return not await self.context(chat_id)
 
     async def _session_is_alive(self, chat_id: str) -> bool:
         last = await self._store.last_message_at(chat_id)

@@ -50,12 +50,11 @@ async def test_at_most_n_messages_are_returned() -> None:
 async def test_a_new_session_starts_after_the_ttl() -> None:
     rig = make_memory(ttl_seconds=3600)
     await record_exchange(rig, "hi", "hello!")
-    assert not await rig.service.is_new_session(CHAT)
+    assert await rig.service.context(CHAT)
 
     await rig.redis.flushall()  # Redis expired too
     rig.clock.advance(hours=2)
 
-    assert await rig.service.is_new_session(CHAT)
     assert await rig.service.context(CHAT) == []
 
 
@@ -65,8 +64,8 @@ async def test_the_session_stays_alive_within_the_ttl() -> None:
     await rig.redis.flushall()
     rig.clock.advance(minutes=30)
 
-    assert not await rig.service.is_new_session(CHAT)
+    assert await rig.service.context(CHAT)
 
 
 async def test_unknown_chat_is_a_new_session() -> None:
-    assert await make_memory().service.is_new_session("someone-new@c.us")
+    assert await make_memory().service.context("someone-new@c.us") == []

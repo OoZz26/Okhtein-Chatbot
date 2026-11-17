@@ -71,7 +71,8 @@ async def delete_fake_customers() -> None:
 
 async def main(base_url: str, log_path: Path | None) -> int:
     log_start = log_path.stat().st_size if log_path and log_path.exists() else 0
-    async with httpx.AsyncClient(base_url=base_url, timeout=180) as client:
+    headers = {"X-Admin-Key": get_settings().admin_api_key}  # /chat is a team-only endpoint
+    async with httpx.AsyncClient(base_url=base_url, timeout=180, headers=headers) as client:
         started = time.perf_counter()
         runs = await asyncio.gather(*(conversation(client, n) for n in range(CONVERSATIONS)))
         wall = time.perf_counter() - started

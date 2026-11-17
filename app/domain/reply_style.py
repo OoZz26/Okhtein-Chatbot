@@ -1,7 +1,8 @@
 """Make a reply read like a person texting, not a generated document.
 
 The prompt asks for this too, but models slip back into dashes and bullet lists, so the reply is cleaned in
-code as well: dashes become commas and list markers are dropped (the line itself stays).
+code as well: dashes become commas and list markers are dropped (the line itself stays). The bot
+answers in English for now, so any Arabic word the persona slips in ("أكيد", "يا حلوة") is removed too.
 """
 
 import re

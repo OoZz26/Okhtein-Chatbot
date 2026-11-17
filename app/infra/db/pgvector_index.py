@@ -2,22 +2,19 @@
 
 import logging
 from collections.abc import Callable, Sequence
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import delete, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
+from app.core.clock import utc_now
 from app.domain.errors import RetrievalError
 from app.domain.models import IndexedProduct, ScoredHandle, VectorFilters
 from app.infra.db.vector_models import ProductEmbeddingRow, VectorBase
 
 logger = logging.getLogger(__name__)
-
-
-def _utc_now() -> datetime:
-    return datetime.now(UTC)
 
 
 async def ensure_vector_support(engine: AsyncEngine) -> bool:
@@ -35,7 +32,7 @@ async def ensure_vector_support(engine: AsyncEngine) -> bool:
 
 class PgVectorIndex:
     def __init__(
-        self, session_factory: async_sessionmaker[AsyncSession], clock: Callable[[], datetime] = _utc_now
+        self, session_factory: async_sessionmaker[AsyncSession], clock: Callable[[], datetime] = utc_now
     ) -> None:
         self._session_factory = session_factory
         self._clock = clock

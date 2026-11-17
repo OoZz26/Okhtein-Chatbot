@@ -177,7 +177,7 @@ def build_agent() -> SalesAgent:
         settings.search_result_limit,
     )
     return SalesAgent(
-        llm=build_llm(settings),
+        llm=_llm(),
         tools=ToolRegistry([search_tool]),
         products=products,
         system_prompt=load_system_prompt(settings.prompt_version),
@@ -185,6 +185,12 @@ def build_agent() -> SalesAgent:
         store_info=FileStoreInfoSource(Path(settings.knowledge_path)),
         catalog_overview=render_catalog_overview(products.all(), settings.store_currency),
     )
+
+
+@lru_cache
+def _llm() -> LLMProvider:
+    """ONE provider chain for the whole app (agent and summariser share its HTTP clients)."""
+    return build_llm(get_settings())
 
 
 @lru_cache
@@ -224,7 +230,7 @@ def build_returning_customer_service() -> ReturningCustomerService:
     return ReturningCustomerService(
         profiles=PostgresProfileStore(sessions),
         conversations=PostgresConversationStore(sessions),
-        summarizer=LLMProfileSummarizer(build_llm(settings)),
+        summarizer=LLMProfileSummarizer(_llm()),
         summary_max_chars=settings.profile_summary_max_chars,
         shown_limit=settings.profile_products_shown_limit,
         summary_wait_seconds=settings.profile_summary_wait_seconds,

@@ -239,6 +239,7 @@ Day-to-day operations:
 
 ## More documentation
 
+- [`docs/READING-GUIDE.md`](docs/READING-GUIDE.md): the order to read the code in, and every decision that led here
 - [`docs/issues/README.md`](docs/issues/README.md): the 13 build slices, with acceptance criteria and lessons
 - [`docs/demo-script.md`](docs/demo-script.md): five conversations to run live
 - [`docs/eval-report-latest.md`](docs/eval-report-latest.md) and [`docs/load-test-results.md`](docs/load-test-results.md)

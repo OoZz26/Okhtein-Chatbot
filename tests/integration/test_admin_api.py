@@ -1,7 +1,8 @@
 import httpx
 import pytest
 
-from app.api.admin import get_admin_api_key, get_handoff_service
+from app.api.admin import get_handoff_service
+from app.api.auth import get_admin_api_key
 from app.main import create_app
 from tests.fakes import HandoffRig, make_handoffs
 

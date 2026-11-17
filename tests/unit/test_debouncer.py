@@ -1,4 +1,7 @@
 import asyncio
+import logging
+
+import pytest
 
 from app.services.debouncer import Debouncer
 from tests.fakes import InMemoryBuffer, InMemoryLock, instant, quick_yield
@@ -133,3 +136,15 @@ async def test_the_lock_is_renewed_while_a_slow_reply_is_being_made() -> None:
 
     assert lock.extensions > 0  # the TTL kept being reset during the reply
     assert lock.held == {}  # and the lock is released afterwards
+
+
+async def test_a_failing_reply_task_is_logged_not_lost(caplog: pytest.LogCaptureFixture) -> None:
+    async def broken(chat_id: str, text: str, sender_name: str) -> None:
+        raise RuntimeError("redis is down")
+
+    debouncer = Debouncer(InMemoryBuffer(), InMemoryLock(), broken, 2.0, 1.0, sleep=instant)
+    with caplog.at_level(logging.ERROR, logger="app.services.debouncer"):
+        await debouncer.submit(CHAT, "hi")
+        await debouncer.wait_idle()
+
+    assert "A debounced reply task failed" in caplog.text

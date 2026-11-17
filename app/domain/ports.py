@@ -90,8 +90,6 @@ class ConversationMemory(Protocol):
 
     async def record(self, chat_id: str, message: ChatMessage, display_name: str = "") -> None: ...
 
-    async def is_new_session(self, chat_id: str) -> bool: ...
-
 
 class SessionStore(Protocol):
     """Remembers the discovery state (stage, customer profile, questions asked) for a chat session."""

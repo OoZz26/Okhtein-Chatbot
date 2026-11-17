@@ -4,6 +4,7 @@ from collections.abc import Iterator
 import pytest
 from fastapi.testclient import TestClient
 
+from app.api.auth import get_admin_api_key
 from app.api.chat import get_chat_service
 from app.domain.agent.sales_agent import SalesAgent, load_system_prompt
 from app.domain.errors import LLMError
@@ -21,6 +22,7 @@ from tests.fakes import (
 )
 
 PRODUCTS = InMemoryProducts([make_product("black-clutch")])
+ADMIN_KEY = "test-admin-key"
 
 
 class FailingLLM:
@@ -37,7 +39,8 @@ def service_with(llm: object) -> ChatService:
 @pytest.fixture
 def client() -> Iterator[TestClient]:
     app = create_app()
-    with TestClient(app) as test_client:
+    app.dependency_overrides[get_admin_api_key] = lambda: ADMIN_KEY
+    with TestClient(app, headers={"X-Admin-Key": ADMIN_KEY}) as test_client:
         test_client.app = app  # type: ignore[attr-defined]
         yield test_client
 
@@ -77,3 +80,16 @@ def test_empty_text_is_rejected(client: TestClient) -> None:
     # Override the service so the test never depends on real API keys being present in .env.
     client.app.dependency_overrides[get_chat_service] = lambda: service_with(FailingLLM())  # type: ignore[attr-defined]
     assert client.post("/chat", json={"chat_id": "c1", "text": ""}).status_code == 422
+
+
+@pytest.mark.parametrize("headers", [{"X-Admin-Key": ""}, {"X-Admin-Key": "wrong"}])
+def test_chat_needs_the_admin_key(client: TestClient, headers: dict[str, str]) -> None:
+    client.app.dependency_overrides[get_chat_service] = lambda: service_with(FailingLLM())  # type: ignore[attr-defined]
+    response = client.post("/chat", json={"chat_id": "c1", "text": "hi"}, headers=headers)
+    assert response.status_code == 401
+
+
+def test_chat_is_closed_when_no_admin_key_is_configured(client: TestClient) -> None:
+    client.app.dependency_overrides[get_admin_api_key] = lambda: ""  # type: ignore[attr-defined]
+    client.app.dependency_overrides[get_chat_service] = lambda: service_with(FailingLLM())  # type: ignore[attr-defined]
+    assert client.post("/chat", json={"chat_id": "c1", "text": "hi"}).status_code == 503

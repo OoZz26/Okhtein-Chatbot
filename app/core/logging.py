@@ -3,9 +3,10 @@
 import logging
 import re
 
+from app.core.privacy import VISIBLE_DIGITS
+
 # A run of 8+ digits (a phone number), optionally followed by a WhatsApp suffix such as "@c.us".
 _SENSITIVE = re.compile(r"\b(\d{8,})(@(?:c\.us|lid|g\.us))?")
-VISIBLE_DIGITS = 4
 
 
 def mask_sensitive(text: str) -> str:

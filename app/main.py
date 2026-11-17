@@ -23,8 +23,9 @@ async def _llm_unavailable(_: Request, exc: Exception) -> JSONResponse:
 
 
 async def _misconfigured(_: Request, exc: Exception) -> JSONResponse:
+    """The details go to the log only: they can name settings and paths the caller must not see."""
     logger.error("Configuration problem: %s", exc)
-    return JSONResponse(status_code=500, content={"detail": str(exc)})
+    return JSONResponse(status_code=500, content={"detail": "The server is misconfigured"})
 
 
 def create_app(

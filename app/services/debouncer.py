@@ -50,7 +50,13 @@ class Debouncer:
     def _schedule(self, chat_id: str, sequence: int) -> None:
         task = asyncio.create_task(self._consume(chat_id, sequence))
         self._tasks.add(task)  # keep a reference, or the task could be garbage collected mid-flight
-        task.add_done_callback(self._tasks.discard)
+        task.add_done_callback(self._finished)
+
+    def _finished(self, task: asyncio.Task[None]) -> None:
+        """A background task has no caller to raise to: log its failure (e.g. Redis down) or it is lost."""
+        self._tasks.discard(task)
+        if not task.cancelled() and (error := task.exception()) is not None:
+            logger.error("A debounced reply task failed", exc_info=error)
 
     async def wait_idle(self) -> None:
         """Wait for every scheduled reply to finish (used by tests and by graceful shutdown)."""

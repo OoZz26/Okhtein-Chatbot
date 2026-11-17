@@ -1,22 +1,19 @@
 """HandoffStore adapter: handoff episodes in Postgres (the source of truth)."""
 
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.clock import utc_now
 from app.domain.handoff import ChatMode, HandoffState
 from app.infra.db.models import HandoffRow
 
 
-def _utc_now() -> datetime:
-    return datetime.now(UTC)
-
-
 class PostgresHandoffStore:
     def __init__(
-        self, session_factory: async_sessionmaker[AsyncSession], clock: Callable[[], datetime] = _utc_now
+        self, session_factory: async_sessionmaker[AsyncSession], clock: Callable[[], datetime] = utc_now
     ) -> None:
         self._session_factory = session_factory
         self._clock = clock

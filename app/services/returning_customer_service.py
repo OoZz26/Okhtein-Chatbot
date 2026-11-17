@@ -11,12 +11,12 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
+from app.core.clock import utc_now
 from app.core.privacy import mask_chat_id
 from app.domain.discovery import CustomerProfile
 from app.domain.errors import LLMError
 from app.domain.long_term_profile import LongTermProfile
 from app.domain.ports import ConversationStore, LongTermProfileStore, ProfileSummarizer
-from app.services.memory_service import utc_now
 
 logger = logging.getLogger(__name__)
 

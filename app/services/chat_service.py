@@ -10,6 +10,7 @@ from app.domain.discovery import DiscoveryPolicy
 from app.domain.errors import LLMError
 from app.domain.models import AgentContext, ChatMessage, ConversationStage
 from app.domain.ports import ConversationMemory, FollowUpStore, SessionStore
+from app.domain.product_links import product_url
 from app.services.handoff_service import HandoffService
 from app.services.returning_customer_service import ReturningCustomerService
 
@@ -51,20 +52,22 @@ class ChatService:
         self._follow_ups = follow_ups
         self._handoffs = handoffs
         self._returning = returning
-        self._store_url = store_url.rstrip("/")
+        self._store_url = store_url
 
     async def is_handed_off(self, chat_id: str) -> bool:
         return await self._handoffs.is_handed_off(chat_id)
 
     async def handle_message(self, chat_id: str, text: str, sender_name: str = "") -> ChatResult:
         started = time.perf_counter()
-        history = await self._memory.context(chat_id)
         state = await self._sessions.load(chat_id)
-        returning = await self._returning.context_for(chat_id, new_session=not history)
-        await self._memory.record(chat_id, ChatMessage("user", text), sender_name)
         if await self._handoffs.is_handed_off(chat_id):
+            # A person owns this chat: keep the message for them, skip the history and summary work.
+            await self._memory.record(chat_id, ChatMessage("user", text), sender_name)
             logger.info("chat_reply outcome=silent reason=handed_off")
             return ChatResult("", [], [], state.stage, message="", silent=True)
+        history = await self._memory.context(chat_id)  # read BEFORE recording, so it holds earlier turns only
+        returning = await self._returning.context_for(chat_id, new_session=not history)
+        await self._memory.record(chat_id, ChatMessage("user", text), sender_name)
         context = AgentContext(
             sender_name=sender_name,
             stage=state.stage,
@@ -82,7 +85,7 @@ class ChatService:
         new_state = self._policy.update(state, agent_reply)
         await self._sessions.save(chat_id, new_state)
         await self._returning.remember(chat_id, new_state.profile, agent_reply.product_handles)
-        links = [self.product_link(handle) for handle in handles]
+        links = [product_url(self._store_url, handle) for handle in handles]
         reply = "\n\n".join([agent_reply.message, *links]) if links else agent_reply.message
         await self._memory.record(chat_id, ChatMessage("assistant", reply))
         handed_off = False
@@ -121,6 +124,3 @@ class ChatService:
     @staticmethod
     def _elapsed_ms(started: float) -> int:
         return int((time.perf_counter() - started) * MS_PER_SECOND)
-
-    def product_link(self, handle: str) -> str:
-        return f"{self._store_url}/products/{handle}"

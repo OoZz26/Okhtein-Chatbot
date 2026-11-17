@@ -1,20 +1,17 @@
 """LongTermProfileStore adapter: the profile lives in customers.profile (JSONB)."""
 
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.clock import utc_now
 from app.domain.discovery import CustomerProfile
 from app.domain.long_term_profile import LongTermProfile
 from app.infra.db.models import CustomerRow
-
-
-def _utc_now() -> datetime:
-    return datetime.now(UTC)
 
 
 def _parse(value: str | None) -> datetime | None:
@@ -23,7 +20,7 @@ def _parse(value: str | None) -> datetime | None:
 
 class PostgresProfileStore:
     def __init__(
-        self, session_factory: async_sessionmaker[AsyncSession], clock: Callable[[], datetime] = _utc_now
+        self, session_factory: async_sessionmaker[AsyncSession], clock: Callable[[], datetime] = utc_now
     ) -> None:
         self._session_factory = session_factory
         self._clock = clock

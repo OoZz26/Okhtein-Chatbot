@@ -9,3 +9,4 @@ __pycache__/
 loadtests/reports/
 *.log
 tests/evals/reports/
+.mcp.json
